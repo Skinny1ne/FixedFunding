@@ -7,15 +7,14 @@ import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBRt04Rm3Ry9nW_DlTm3TsR8bCzkPvxvSA",
-  authDomain: "hotel-management-system-c3526.firebaseapp.com",
-  // CRITICAL: Added the Belgium RTDB URL here
-  databaseURL: "https://hotel-management-system-c3526-default-rtdb.europe-west1.firebasedatabase.app/",
-  projectId: "hotel-management-system-c3526",
-  storageBucket: "hotel-management-system-c3526.firebasestorage.app",
-  messagingSenderId: "7196606684",
-  appId: "1:7196606684:web:66cb6e026807b517f17419",
-  measurementId: "G-EB3RC1CJCB"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
