@@ -68,6 +68,8 @@ export const getProfessionalPDFHTML = (content: {
       <head>
         <title>${content.title}</title>
         <meta charset="utf-8">
+      </head>
+      <body>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
@@ -230,8 +232,6 @@ export const getProfessionalPDFHTML = (content: {
             color: #888;
           }
         </style>
-      </head>
-      <body>
         <div class="document">
           <div class="header">
             <div class="header-left">

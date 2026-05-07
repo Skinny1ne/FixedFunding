@@ -455,6 +455,29 @@ export function FrontDeskDashboard() {
     }
   };
 
+  const handleSettleBill = async () => {
+    if (!selectedBooking) return;
+    setIsProcessing(true);
+    try {
+      const bookingRef = doc(db, 'bookings', selectedBooking.id);
+      await updateDoc(bookingRef, { balanceDue: 0, paymentStatus: 'paid' });
+      
+      setAlertModal({
+        open: true,
+        title: "Bill Settled",
+        message: "The outstanding balance has been settled.",
+        type: "success"
+      });
+      // Optionally refresh the modal data
+      setSelectedBooking({ ...selectedBooking, balanceDue: 0, paymentStatus: 'paid' });
+    } catch (error) {
+      console.error(error);
+      setAlertModal({ open: true, title: "Error", message: "Could not settle the bill.", type: "error" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleSendEmailReceipt = async () => {
     console.log("=== EMAIL BUTTON CLICKED ===");
     console.log("Email address:", emailAddress);
@@ -1439,21 +1462,33 @@ export function FrontDeskDashboard() {
                 </div>
                 <div className="flex justify-between items-center text-lg font-bold mt-2 pt-2 border-t border-dashed">
                   <span>Total Due</span>
-                  <span className="text-2xl text-[#1e3a5f] font-bold">R {((guestBilling.roomCharges || 0) + getTotalIncidentalCharges()).toFixed(2)}</span>
+                  <span className="text-2xl text-[#1e3a5f] font-bold">R {(selectedBooking?.balanceDue !== undefined ? selectedBooking.balanceDue : ((guestBilling.roomCharges || 0) + getTotalIncidentalCharges())).toFixed(2)}</span>
                 </div>
               </div>
 
               {selectedBooking?.status !== 'checked_out' && (
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-700" 
-                  onClick={() => {
-                    setShowBillingModal(false);
-                    setShowCheckOutModal(true);
-                  }}
-                >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Proceed to Checkout
-                </Button>
+                <div className="flex gap-3">
+                  {(selectedBooking?.balanceDue === undefined || selectedBooking.balanceDue > 0) && (
+                    <Button 
+                      className="flex-1 bg-amber-600 hover:bg-amber-700" 
+                      onClick={handleSettleBill}
+                      disabled={isProcessing}
+                    >
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Settle Bill via POS
+                    </Button>
+                  )}
+                  <Button 
+                    className="flex-1 bg-green-600 hover:bg-green-700" 
+                    onClick={() => {
+                      setShowBillingModal(false);
+                      setShowCheckOutModal(true);
+                    }}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Proceed to Checkout
+                  </Button>
+                </div>
               )}
 
               {selectedBooking?.status === 'checked_out' && (
