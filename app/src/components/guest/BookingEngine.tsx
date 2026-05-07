@@ -45,7 +45,6 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
   const [confirmationNumber, setConfirmationNumber] = useState('');
   
   // Payment state
-  const [showPaymentPage, setShowPaymentPage] = useState(false);
   const [depositAmount, setDepositAmount] = useState(0);
   
   // Alert Modal state
