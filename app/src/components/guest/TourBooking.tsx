@@ -14,6 +14,7 @@ import {
   Star, MessageCircle, CalendarPlus, Share2, CloudSun
 } from 'lucide-react';
 import { generateICS } from '@/utils/calendar';
+import { generatePDFFromHTML, getProfessionalPDFHTML } from '@/utils/pdfGenerator';
 import { toast } from 'sonner';
 
 interface TourReview {
@@ -286,6 +287,30 @@ export function TourBooking({ onBack }: TourBookingProps) {
             }}
           >
             <CalendarPlus className="mr-2 h-4 w-4" /> Add to Calendar
+          </Button>
+          <Button 
+            className="flex-1 bg-white text-green-700 border-2 border-green-700 hover:bg-green-50"
+            onClick={async () => {
+              if (!confirmedBooking) return;
+              const details = [
+                { label: 'Booking Reference', value: confirmedBooking.bookingReference },
+                { label: 'Guest Name', value: confirmedBooking.guestName },
+                { label: 'Tour', value: confirmedBooking.tourName },
+                { label: 'Date', value: formatDate(confirmedBooking.date) },
+                { label: 'Time', value: confirmedBooking.time },
+                { label: 'Tickets', value: confirmedBooking.tickets.map(t => `${t.quantity}x ${TICKET_LABELS[t.type]}`).join(', ') }
+              ];
+              const html = getProfessionalPDFHTML({
+                title: 'EXCURSION RECEIPT',
+                guestName: confirmedBooking.guestName,
+                details: details,
+                total: confirmedBooking.totalAmount,
+                footer: 'Thank you for booking with Azure Horizon Resort. Please arrive 15 minutes before departure.'
+              });
+              await generatePDFFromHTML(html, `Tour_Receipt_${confirmedBooking.bookingReference}.pdf`);
+            }}
+          >
+            <FileText className="mr-2 h-4 w-4" /> Download Receipt
           </Button>
           <Button className="flex-1 bg-[#1e3a5f] hover:bg-[#163058]" onClick={onBack}>
             Dashboard

@@ -12,16 +12,7 @@ import { usePaystackPayment } from 'react-paystack';
 import { fetchAllGuestCharges } from '@/services/firebase-services';
 import { generatePDFFromHTML, getProfessionalPDFHTML } from '@/utils/pdfGenerator';
 
-// Define the Receipt structure to satisfy TypeScript
-interface Receipt {
-  id: string;
-  guestId: string;
-  totalAmount: number;
-  items: Array<{ name: string; price: number; quantity?: number }>;
-  createdAt?: { seconds: number; nanoseconds: number };
-  status: string;
-  type: string;
-}
+
 
 interface BillingViewProps {
   onBack: () => void;
@@ -32,46 +23,79 @@ type AuthUserBridge = AppUser & { uid?: string };
 
 export function BillingView({ onBack }: BillingViewProps) {
   const { user } = useAuth();
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [activeBooking, setActiveBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
 
   const currentUser = user as AuthUserBridge;
   const currentUserId = currentUser?.id || currentUser?.uid;
 
   useEffect(() => {
-    const fetchReceipts = async () => {
+    const fetchBillingData = async () => {
       if (!currentUserId) return;
       
       try {
-        const q = query(
+        // 1. Fetch Active Booking
+        const bq = query(
+          collection(db, "bookings"),
+          where("guestId", "==", currentUserId),
+          where("status", "in", ["confirmed", "checked_in"])
+        );
+        const bSnap = await getDocs(bq);
+        let bookingData = null;
+        if (!bSnap.empty) {
+          bookingData = { id: bSnap.docs[0].id, ...bSnap.docs[0].data() };
+          setActiveBooking(bookingData);
+        }
+
+        // 2. Fetch Receipts (Dining)
+        const rq = query(
           collection(db, "receipts"), 
           where("guestId", "==", currentUserId)
         );
-        const snap = await getDocs(q);
-        const data = snap.docs.map(doc => ({ 
+        const rSnap = await getDocs(rq);
+        const rData = rSnap.docs.map(doc => ({ 
           id: doc.id, 
+          type: 'dining',
           ...doc.data() 
-        })) as Receipt[];
+        }));
 
-        // Sort manually by timestamp (descending)
-        setReceipts(data.sort((a, b) => {
-          const timeA = a.createdAt?.seconds || 0;
-          const timeB = b.createdAt?.seconds || 0;
+        // 3. Fetch Incidental Charges (Spa, Tours, etc.)
+        let iData: any[] = [];
+        if (bookingData) {
+          const iq = query(
+            collection(db, "incidental_charges"),
+            where("bookingId", "==", bookingData.id)
+          );
+          const iSnap = await getDocs(iq);
+          iData = iSnap.docs.map(doc => ({
+            id: doc.id,
+            type: 'incidental',
+            ...doc.data()
+          }));
+        }
+
+        // Combine and Sort
+        const combined = [...rData, ...iData];
+        setReceipts(combined.sort((a, b) => {
+          const timeA = a.createdAt?.seconds || new Date(a.date || 0).getTime() / 1000 || 0;
+          const timeB = b.createdAt?.seconds || new Date(b.date || 0).getTime() / 1000 || 0;
           return timeB - timeA;
         }));
       } catch (error) {
-        console.error("Error fetching receipts:", error);
+        console.error("Error fetching billing data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchReceipts();
+    fetchBillingData();
   }, [currentUserId]);
 
-  const totalBill = receipts.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+
+  const totalBill = activeBooking ? (activeBooking.balanceDue || 0) : 0;
   const amountToPay = totalBill > 0 ? totalBill : 0;
 
   // Paystack config
@@ -87,12 +111,24 @@ export function BillingView({ onBack }: BillingViewProps) {
 
   const initializePayment = usePaystackPayment(config);
 
-  const handlePaystackSuccess = () => {
+  const handlePaystackSuccess = async () => {
     document.body.style.pointerEvents = 'auto'; // ensure clickability
     setPaymentSuccess(true);
     setIsProcessingPayment(false);
     
-    // In a real app, we would update the backend here. For now, we simulate success.
+    // Update DB
+    if (activeBooking) {
+      try {
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const bookingRef = doc(db, 'bookings', activeBooking.id);
+        await updateDoc(bookingRef, {
+          balanceDue: 0,
+          paymentStatus: 'paid'
+        });
+      } catch (err) {
+        console.error("Error updating payment status:", err);
+      }
+    }
   };
 
   const handlePaystackClose = () => {
@@ -261,9 +297,27 @@ export function BillingView({ onBack }: BillingViewProps) {
           </Card>
         ) : (
           <div className="grid gap-8">
-            {receipts.map((receipt) => (
-              <DigitalReceipt key={receipt.id} data={receipt} />
-            ))}
+            {receipts.map((receipt) => {
+              if (receipt.type === 'incidental') {
+                return (
+                  <Card key={receipt.id} className="border-none shadow-md">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <Badge className="bg-purple-100 text-purple-800 border-none mb-2">Room Charge</Badge>
+                          <h4 className="font-bold text-[#1e3a5f] text-lg">{receipt.description}</h4>
+                          <p className="text-sm text-gray-500 mt-1">{new Date(receipt.date).toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-xl text-[#1e3a5f]">R {receipt.amount}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              return <DigitalReceipt key={receipt.id} data={receipt} />;
+            })}
           </div>
         )}
       </div>

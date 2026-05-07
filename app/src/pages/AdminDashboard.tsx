@@ -503,7 +503,7 @@ export function AdminDashboard() {
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">Current occupancy by room type (% capacity utilization)</p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-wrap gap-4">
             {Object.entries(roomTypeOccupancy).length > 0 ? (
               Object.entries(roomTypeOccupancy).map(([roomType, occupancy]) => {
                 const getOccupancyColor = (occ: number) => {
@@ -528,7 +528,7 @@ export function AdminDashboard() {
                 };
 
                 return (
-                  <div key={roomType} className={`p-4 border rounded-lg ${getOccupancyColor(occupancy)}`}>
+                  <div key={roomType} className={`flex-1 min-w-[240px] p-4 border rounded-lg ${getOccupancyColor(occupancy)}`}>
                     <div className="flex justify-between items-start mb-3">
                       <p className="text-sm font-semibold capitalize text-slate-900 dark:text-slate-100">{roomType.replace(/_/g, ' ')}</p>
                       <span className={`text-lg font-bold ${getOccupancyTextColor(occupancy)}`}>{occupancy}%</span>

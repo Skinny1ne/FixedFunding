@@ -41,6 +41,37 @@ export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
     return unsub;
   }, [currentUser?.id, currentUser?.uid]);
 
+  const handleRedeem = async (reward: { id: number, title: string, pts: number }) => {
+    if (!currentUser || points < reward.pts) return;
+    const confirmRedeem = window.confirm(`Are you sure you want to redeem ${reward.pts} points for ${reward.title}?`);
+    if (!confirmRedeem) return;
+
+    try {
+      const { doc, updateDoc, collection, addDoc } = await import('firebase/firestore');
+      const { db } = await import('@/services/firebase-services');
+      const guestId = currentUser.id || currentUser.uid || '';
+      
+      const newPoints = points - reward.pts;
+      
+      // Update user points
+      const userRef = doc(db, 'users', guestId);
+      await updateDoc(userRef, { loyaltyPoints: newPoints });
+      
+      // Add log entry (negative points)
+      await addDoc(collection(db, 'loyalty_logs'), {
+        guestId: guestId,
+        points: -reward.pts,
+        reason: `Redeemed: ${reward.title}`,
+        createdAt: new Date().toISOString()
+      });
+      
+      alert(`Successfully redeemed: ${reward.title}! You can show this to the staff to claim your reward.`);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to redeem points. Try again.');
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
       <Button variant="ghost" onClick={onBack} className="text-[#1e3a5f] hover:bg-[#1e3a5f]/5 -ml-4">
@@ -153,6 +184,7 @@ export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
                     variant={points >= reward.pts ? 'default' : 'outline'}
                     disabled={points < reward.pts}
                     className={points >= reward.pts ? 'bg-[#c9a227] hover:bg-[#b08d22] text-white' : ''}
+                    onClick={() => handleRedeem(reward)}
                   >
                     {points >= reward.pts ? 'Redeem' : 'Not Enough Pts'}
                   </Button>
@@ -171,20 +203,25 @@ export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
             <p className="text-gray-400 text-center py-8 italic">No points earned yet. Make a booking to start earning!</p>
           ) : (
             <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {logEntries.slice(0, 20).map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
+              {logEntries.slice(0, 20).map((entry) => {
+                const isRedemption = entry.points < 0;
+                return (
+                  <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full ${isRedemption ? 'bg-red-100' : 'bg-green-100'} flex items-center justify-center`}>
+                        {isRedemption ? <Gift className="h-4 w-4 text-red-600" /> : <TrendingUp className="h-4 w-4 text-green-600" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{entry.reason}</p>
+                        <p className="text-xs text-gray-400 flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(entry.createdAt).toLocaleDateString()}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{entry.reason}</p>
-                      <p className="text-xs text-gray-400 flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(entry.createdAt).toLocaleDateString()}</p>
-                    </div>
+                    <span className={`${isRedemption ? 'text-red-600' : 'text-green-600'} font-bold text-sm`}>
+                      {isRedemption ? '' : '+'}{entry.points}
+                    </span>
                   </div>
-                  <span className="text-green-600 font-bold text-sm">+{entry.points}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

@@ -108,6 +108,7 @@ export function FrontDeskDashboard() {
   const [incidentalCharges, setIncidentalCharges] = useState<IncidentalCharge[]>([]);
   const [extendDays, setExtendDays] = useState(1);
   const [keysReturned, setKeysReturned] = useState(false);
+  const [paymentCollected, setPaymentCollected] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [showEarlyCheckoutModal, setShowEarlyCheckoutModal] = useState(false);
@@ -367,6 +368,17 @@ export function FrontDeskDashboard() {
       return;
     }
 
+    const balance = selectedBooking.balanceDue !== undefined ? selectedBooking.balanceDue : selectedBooking.totalAmount + getTotalIncidentalCharges();
+    if (balance > 0 && !paymentCollected) {
+      setAlertModal({
+        open: true,
+        title: "Payment Required",
+        message: "Please confirm that you have collected the outstanding balance via POS terminal.",
+        type: "warning"
+      });
+      return;
+    }
+
     setIsProcessingPayment(true);
     
     // Simulate processing payment via physical POS terminal
@@ -421,6 +433,7 @@ export function FrontDeskDashboard() {
       // Clear the selected booking after opening email modal
       setSelectedBooking(null);
       setKeysReturned(false);
+      setPaymentCollected(false);
       
       setAlertModal({
         open: true,
@@ -1047,29 +1060,44 @@ export function FrontDeskDashboard() {
                 <span className="dark:text-slate-100">R {getTotalIncidentalCharges()}</span>
               </div>
               <div className="flex justify-between font-bold border-t dark:border-slate-600 pt-2">
-                <span className="dark:text-slate-100">Total Due</span>
-                <span className="dark:text-slate-100">R {(selectedBooking?.totalAmount || 0) + getTotalIncidentalCharges()}</span>
+                <span className="dark:text-slate-100">Total Outstanding Balance</span>
+                <span className="text-orange-600">R {selectedBooking?.balanceDue !== undefined ? selectedBooking.balanceDue : (selectedBooking?.totalAmount || 0) + getTotalIncidentalCharges()}</span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <Checkbox
-                id="keys-returned"
-                checked={keysReturned}
-                onCheckedChange={(checked) => setKeysReturned(checked as boolean)}
-              />
-              <Label htmlFor="keys-returned" className="text-sm font-normal cursor-pointer">
-                Confirm room keys have been returned by guest
-              </Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <Checkbox
+                  id="keys-returned"
+                  checked={keysReturned}
+                  onCheckedChange={(checked) => setKeysReturned(checked as boolean)}
+                />
+                <Label htmlFor="keys-returned" className="text-sm font-normal cursor-pointer">
+                  Confirm room keys have been returned by guest
+                </Label>
+              </div>
+
+              {(selectedBooking?.balanceDue === undefined || selectedBooking.balanceDue > 0) && (
+                <div className="flex items-center space-x-2 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <Checkbox
+                    id="payment-collected"
+                    checked={paymentCollected}
+                    onCheckedChange={(checked) => setPaymentCollected(checked as boolean)}
+                  />
+                  <Label htmlFor="payment-collected" className="text-sm font-normal cursor-pointer text-orange-900 dark:text-orange-300">
+                    Confirm payment of R {selectedBooking?.balanceDue !== undefined ? selectedBooking.balanceDue : (selectedBooking?.totalAmount || 0) + getTotalIncidentalCharges()} collected via POS Terminal
+                  </Label>
+                </div>
+              )}
             </div>
 
             <Button 
               className="w-full bg-orange-600 hover:bg-orange-700" 
               onClick={handleCheckOut} 
-              disabled={isProcessing || isProcessingPayment || !keysReturned}
+              disabled={isProcessing || isProcessingPayment || !keysReturned || ((selectedBooking?.balanceDue === undefined || selectedBooking.balanceDue > 0) && !paymentCollected)}
             >
               {(isProcessing || isProcessingPayment) ? <Loader2 className="animate-spin mr-2" /> : <CreditCard className="mr-2 h-4 w-4" />}
-              Process via POS Terminal & Checkout
+              Process Checkout
             </Button>
           </div>
         </DialogContent>

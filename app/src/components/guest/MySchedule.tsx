@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Loader2, Sparkles, Compass, UtensilsCrossed, BedDouble, Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, MapPin, Loader2, Sparkles, Compass, UtensilsCrossed, BedDouble, Bell, X } from 'lucide-react';
 import { db } from '@/services/firebase-services';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import type { User as AppUser } from '@/types';
@@ -24,6 +25,20 @@ interface ScheduleItem {
 export function MySchedule({ user }: MyScheduleProps) {
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dismissedItems, setDismissedItems] = useState<string[]>([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('dismissedScheduleItems');
+    if (stored) {
+      setDismissedItems(JSON.parse(stored));
+    }
+  }, []);
+
+  const handleDismiss = (id: string) => {
+    const newDismissed = [...dismissedItems, id];
+    setDismissedItems(newDismissed);
+    localStorage.setItem('dismissedScheduleItems', JSON.stringify(newDismissed));
+  };
 
   useEffect(() => {
     const guestId = user?.id || user?.uid;
@@ -136,8 +151,10 @@ export function MySchedule({ user }: MyScheduleProps) {
     );
   }
 
-  if (items.length === 0) {
-    return null; // Hide completely if no schedule
+  const visibleItems = items.filter(item => !dismissedItems.includes(item.id));
+
+  if (visibleItems.length === 0) {
+    return null; // Hide completely if no visible schedule
   }
 
   const getIcon = (type: string) => {
@@ -172,18 +189,18 @@ export function MySchedule({ user }: MyScheduleProps) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="flex flex-col">
-          {items.map((item, index) => {
+          {visibleItems.map((item, index) => {
             const isPast = item.date < now;
             const isSoon = !isPast && (item.date.getTime() - now.getTime() < 60 * 60 * 1000); // within 1 hour
             
             return (
-              <div key={item.id} className={`flex items-stretch relative ${index !== items.length - 1 ? 'border-b dark:border-slate-800' : ''}`}>
+              <div key={item.id} className={`flex items-stretch relative ${index !== visibleItems.length - 1 ? 'border-b dark:border-slate-800' : ''}`}>
                 {/* Timeline line */}
                 <div className="w-16 flex flex-col items-center py-4 relative">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${getColor(item.type)} ${isPast ? 'opacity-50' : ''}`}>
                     {getIcon(item.type)}
                   </div>
-                  {index !== items.length - 1 && (
+                  {index !== visibleItems.length - 1 && (
                     <div className="absolute top-12 bottom-0 w-px bg-gray-200 dark:bg-slate-800" />
                   )}
                 </div>
@@ -191,12 +208,23 @@ export function MySchedule({ user }: MyScheduleProps) {
                 {/* Content */}
                 <div className={`flex-1 py-4 pr-4 ${isPast ? 'opacity-60' : ''}`}>
                   <div className="flex justify-between items-start mb-1">
-                    <h4 className={`font-semibold text-sm ${isPast ? 'line-through text-gray-500' : 'text-gray-900 dark:text-white'}`}>{item.title}</h4>
-                    {isSoon && (
-                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none animate-pulse">
-                        <Bell className="h-3 w-3 mr-1 inline" /> Upcoming
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <h4 className={`font-semibold text-sm ${isPast ? 'line-through text-gray-500' : 'text-gray-900 dark:text-white'}`}>{item.title}</h4>
+                      {isSoon && (
+                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none animate-pulse">
+                          <Bell className="h-3 w-3 mr-1 inline" /> Upcoming
+                        </Badge>
+                      )}
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleDismiss(item.id)}
+                      className="h-6 w-6 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+                      title="Dismiss from itinerary"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                   </div>
                   
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500 dark:text-gray-400">

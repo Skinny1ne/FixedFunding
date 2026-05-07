@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { db, extendBooking } from '@/services/firebase-services';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { fetchAllGuestCharges, db, extendBooking } from '@/services/firebase-services';
 import type { Booking, User as AppUser, Room } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,7 +32,7 @@ type AuthUserBridge = AppUser & { uid?: string };
 
 export function MyReservations({ onBack }: MyReservationsProps) {
   const { user } = useAuth();
-  const [reservations, setReservations] = useState<Booking[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<Booking | null>(null);
@@ -55,17 +55,41 @@ export function MyReservations({ onBack }: MyReservationsProps) {
       }
 
       try {
-        const bookingsRef = collection(db, 'bookings');
-        const q = query(bookingsRef, where('guestId', '==', currentUserId));
-        const querySnapshot = await getDocs(q);
+        const charges = await fetchAllGuestCharges(currentUserId);
         
-        const bookings = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Booking[];
+        const mappedBookings = charges.bookings.map((b: any) => ({ ...b, resType: 'room' }));
         
-        bookings.sort((a, b) => new Date(a.checkInDate).getTime() - new Date(b.checkInDate).getTime());
-        setReservations(bookings);
+        const mappedSpa = charges.spaBookings.map((s: any) => ({
+          id: s.id,
+          resType: 'spa',
+          guestName: s.guestName,
+          checkInDate: s.date + 'T' + s.time,
+          checkOutDate: s.date + 'T' + s.time,
+          roomName: 'Spa: ' + s.treatmentName,
+          roomNumber: 'Spa',
+          numberOfGuests: 1,
+          status: s.status,
+          totalAmount: s.price,
+          createdAt: s.createdAt || s.date
+        }));
+
+        const mappedTour = charges.tourBookings.map((t: any) => ({
+          id: t.id,
+          resType: 'tour',
+          guestName: t.guestName,
+          checkInDate: t.date + 'T' + t.time,
+          checkOutDate: t.date + 'T' + t.time,
+          roomName: 'Tour: ' + t.tourName,
+          roomNumber: 'Tour',
+          numberOfGuests: t.tickets ? t.tickets.reduce((sum: number, tk: any) => sum + tk.quantity, 0) : 1,
+          status: t.status,
+          totalAmount: t.totalAmount,
+          createdAt: t.createdAt || t.date
+        }));
+
+        const allReservations = [...mappedBookings, ...mappedSpa, ...mappedTour];
+        allReservations.sort((a, b) => new Date(a.checkInDate).getTime() - new Date(b.checkInDate).getTime());
+        setReservations(allReservations);
       } catch (error) {
         console.error("Error fetching reservations:", error);
       } finally {
@@ -183,7 +207,7 @@ export function MyReservations({ onBack }: MyReservationsProps) {
     await generatePDFFromHTML(html, `Reservation_Invoice_${booking.id}.pdf`);
   };
 
-  const getStatusBadge = (status: Booking['status']) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
         return <Badge className="bg-blue-100 text-blue-800 border-none">Confirmed</Badge>;
@@ -198,7 +222,7 @@ export function MyReservations({ onBack }: MyReservationsProps) {
     }
   };
 
-  const getStatusIcon = (status: Booking['status']) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'confirmed':
         return <Clock className="h-4 w-4 text-blue-500" />;
@@ -581,9 +605,9 @@ export function MyReservations({ onBack }: MyReservationsProps) {
 
 // Sub-component for individual reservation cards
 interface ReservationCardProps {
-  reservation: Booking;
-  getStatusBadge: (status: Booking['status']) => React.ReactNode;
-  getStatusIcon: (status: Booking['status']) => React.ReactNode;
+  reservation: any;
+  getStatusBadge: (status: string) => React.ReactNode;
+  getStatusIcon: (status: string) => React.ReactNode;
   formatDate: (date: string) => string;
   calculateNights: (checkIn: string, checkOut: string) => number;
   onCancel?: () => void;
@@ -639,7 +663,7 @@ function ReservationCard({
                 <Download className="h-3 w-3" />
               </Button>
             )}
-            {showActions && onExtend && (reservation.status === 'confirmed' || reservation.status === 'checked_in') && (
+            {showActions && onExtend && reservation.resType === 'room' && (reservation.status === 'confirmed' || reservation.status === 'checked_in') && (
               <Button size="sm" variant="outline" onClick={onExtend} className="text-blue-600 hover:bg-blue-50">
                 <CalendarPlus className="h-3 w-3 mr-1" />
                 Extend

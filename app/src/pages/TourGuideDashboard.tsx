@@ -75,9 +75,17 @@ export function TourGuideDashboard() {
 
   const todaySessions = sessions.filter(s => s.slot.date === today);
   const upcomingSessions = sessions.filter(s => s.slot.date > today);
-  const todayGuests = todaySessions.reduce((s, sess) => s + sess.bookings.length, 0);
+  const todayGuests = todaySessions.reduce((s, sess) => 
+    s + sess.bookings.reduce((guestSum, b) => 
+      guestSum + (b.tickets ? b.tickets.reduce((tkSum, tk) => tkSum + tk.quantity, 0) : 1), 
+    0), 
+  0);
   const todayRevenue = todaySessions.reduce((s, sess) => s + sess.bookings.reduce((r, b) => r + b.totalAmount, 0), 0);
-  const checkedInToday = todaySessions.reduce((s, sess) => s + sess.bookings.filter(b => b.status === 'checked_in' || b.status === 'completed' as any).length, 0);
+  const checkedInToday = todaySessions.reduce((s, sess) => 
+    s + sess.bookings
+      .filter(b => b.status === 'checked_in' || b.status === 'completed' as any)
+      .reduce((guestSum, b) => guestSum + (b.tickets ? b.tickets.reduce((tkSum, tk) => tkSum + tk.quantity, 0) : 1), 0), 
+  0);
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-ZA', { weekday: 'short', month: 'short', day: 'numeric' });
 
