@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Lock, CreditCard, CheckCircle, Download, Printer } from 'lucide-react';
+import { AlertCircle, Lock, CreditCard, CheckCircle, Download } from 'lucide-react';
 import { usePaystackPayment } from 'react-paystack';
 import { useAuth } from '@/hooks/useAuth';
 import { generatePDFFromHTML, getProfessionalPDFHTML } from '@/utils/pdfGenerator';
