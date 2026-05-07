@@ -3,7 +3,7 @@
   base = "app"
   
   # The command to build the app (relative to the base directory)
-  command = "npm install && npm run build"
+  command = "npm install --legacy-peer-deps && npm run build"
   
   # The directory that Netlify will serve (relative to the base directory)
   publish = "dist"
