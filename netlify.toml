@@ -2,11 +2,15 @@
   # The directory where the app source code lives
   base = "app"
   
-  # The command to build the app (relative to the base directory)
-  command = "npm install --legacy-peer-deps && npm run build"
+  # Use the standard build command; dependencies are handled by NPM_FLAGS
+  command = "npm run build"
   
   # The directory that Netlify will serve (relative to the base directory)
   publish = "dist"
+
+[build.environment]
+  # This ensures Netlify's automatic dependency installation uses the legacy flag
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
   # This ensures that React Router works correctly on refresh
