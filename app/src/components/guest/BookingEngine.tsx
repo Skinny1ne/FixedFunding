@@ -126,7 +126,6 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
   const handlePaymentComplete = async (_paymentConfirmation: string, depositPaid: number) => {
     setShowPaymentPage(false);
     await handleConfirmBookingWithPayment(depositPaid);
-    onBack();
   };
 
   const handleConfirmBookingWithPayment = async (depositPaid: number) => {
@@ -166,7 +165,8 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
       if (result.bookingId) {
         setConfirmationNumber(result.bookingId);
         setShowBookingModal(false);
-        showValidationMessage("Booking Confirmed!", `Your room has been booked. Confirmation: ${result.bookingId}\nDeposit Paid: R ${depositPaid}`, false);
+        setBookingStep('confirm');
+        // We don't need the alert modal here anymore since we have a dedicated confirmation screen
       }
     } catch (error) {
       console.error("Booking creation failed:", error);
@@ -452,10 +452,8 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
         </Dialog>
 
         {/* Payment Page Dialog */}
-        <Dialog open={showPaymentPage} onOpenChange={(open) => {
-          if (!open) setShowPaymentPage(false);
-        }}>
-          <DialogContent className="max-w-2xl p-0 border-none bg-transparent shadow-none overflow-visible">
+        <Dialog open={showPaymentPage} onOpenChange={setShowPaymentPage}>
+          <DialogContent className="max-w-2xl p-6 bg-white dark:bg-slate-900 border-none shadow-2xl overflow-y-auto max-h-[90vh]">
             <PaymentPage
               bookingDetails={{
                 roomName: selectedRoom?.name || '',

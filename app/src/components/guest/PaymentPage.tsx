@@ -55,10 +55,32 @@ export function PaymentPage({ bookingDetails, onPaymentComplete, onCancel }: Pay
   };
 
   const triggerPayment = () => {
+    console.log("Triggering payment with key:", PAYSTACK_PUBLIC_KEY.slice(0, 10) + "...");
+    
     if (PAYSTACK_PUBLIC_KEY.includes('placeholder')) {
-      alert("Please configure your VITE_PAYSTACK_PUBLIC_KEY in the .env file to test actual payments.");
+      const confirmSim = window.confirm("Paystack Public Key is missing in Netlify settings. Would you like to SIMULATE a successful payment for testing purposes?");
+      if (confirmSim) {
+        handlePaystackSuccess({ reference: `SIM-${Date.now()}` });
+        return;
+      }
     }
-    initializePayment({ onSuccess: handlePaystackSuccess, onClose: handlePaystackClose });
+    
+    try {
+      console.log("Initializing Paystack payment window...");
+      initializePayment({ 
+        onSuccess: (ref) => {
+          console.log("Paystack Payment Success:", ref);
+          handlePaystackSuccess(ref);
+        }, 
+        onClose: () => {
+          console.log("Paystack Modal Closed by User");
+          handlePaystackClose();
+        } 
+      });
+    } catch (err) {
+      console.error("Paystack initialization failed:", err);
+      alert("⚠️ Error: Could not launch the payment window.\n\nCommon fixes:\n1. Check if your browser is blocking pop-ups.\n2. Ensure VITE_PAYSTACK_PUBLIC_KEY is set in Netlify site settings.\n3. Make sure you are using a valid email address.");
+    }
   };
 
   const downloadReceipt = async () => {
@@ -95,20 +117,17 @@ export function PaymentPage({ bookingDetails, onPaymentComplete, onCancel }: Pay
   };
 
   const handleComplete = () => {
+    console.log("Completing booking with confirmation:", confirmationNumber);
     onPaymentComplete(confirmationNumber, bookingDetails.depositAmount);
   };
 
   if (step === 'disclaimer') {
     return (
-      <div className="w-full animate-in fade-in zoom-in-95 duration-300">
-        <Card className="border-none shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[#1e3a5f]">
-              <AlertCircle className="h-6 w-6" />
-              Deposit & Cancellation Policy
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+      <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300 pointer-events-auto">
+        <div className="flex items-center gap-2 text-[#1e3a5f] dark:text-blue-400 mb-2">
+          <AlertCircle className="h-6 w-6" />
+          <h2 className="text-xl font-serif font-bold">Deposit & Cancellation Policy</h2>
+        </div>
             <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
               <p className="text-sm font-semibold text-amber-800 mb-2">Important Information</p>
               <ul className="text-sm text-amber-700 space-y-2 list-disc list-inside">
@@ -146,32 +165,28 @@ export function PaymentPage({ bookingDetails, onPaymentComplete, onCancel }: Pay
                </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 pt-4">
               <Button variant="outline" className="flex-1" onClick={onCancel}>
                 Cancel Booking
               </Button>
-              <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={triggerPayment}>
+              <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={triggerPayment}>
                 <CreditCard className="mr-2 h-4 w-4" />
-                Pay R {bookingDetails.depositAmount} Securely
+                Pay R {bookingDetails.depositAmount}
               </Button>
             </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   if (step === 'confirmation') {
     return (
-      <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <Card className="border-none shadow-2xl overflow-hidden">
-          <CardHeader className="text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="h-10 w-10 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl font-serif text-[#1e3a5f]">Payment Successful!</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pointer-events-auto">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-10 w-10 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-serif text-[#1e3a5f] dark:text-blue-400">Payment Successful!</h2>
+        </div>
             <div className="bg-green-50 p-4 rounded-lg text-center">
               <p className="text-sm text-green-800">Your deposit of <strong>R {bookingDetails.depositAmount}</strong> has been received.</p>
               <p className="text-xs text-green-600 mt-1">Confirmation: {confirmationNumber}</p>
@@ -214,21 +229,15 @@ export function PaymentPage({ bookingDetails, onPaymentComplete, onCancel }: Pay
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-4">
               <Button variant="outline" className="flex-1" onClick={downloadReceipt}>
                 <Download className="mr-2 h-4 w-4" />
-                Download Receipt
+                Receipt
               </Button>
-              <Button variant="outline" className="flex-1" onClick={() => window.print()}>
-                <Printer className="mr-2 h-4 w-4" />
-                Print
-              </Button>
-              <Button className="flex-1 bg-[#1e3a5f]" onClick={handleComplete}>
+              <Button className="flex-1 bg-[#1e3a5f] hover:bg-[#2c5282] text-white" onClick={handleComplete}>
                 Complete Booking
               </Button>
             </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
