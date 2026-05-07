@@ -34,7 +34,7 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [bookingStep, setBookingStep] = useState<'search' | 'select' | 'confirm'>('search');
+  const [bookingStep, setBookingStep] = useState<'search' | 'select' | 'payment' | 'confirm'>('search');
   const [isLoading, setIsLoading] = useState(false);
   
   // Search form state
@@ -124,7 +124,6 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
   };
 
   const handlePaymentComplete = async (_paymentConfirmation: string, depositPaid: number) => {
-    setShowPaymentPage(false);
     await handleConfirmBookingWithPayment(depositPaid);
   };
 
@@ -440,7 +439,7 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
                 className="w-full bg-[#c9a227] hover:bg-[#b8941f] text-white"
                 onClick={() => {
                   setShowBookingModal(false);
-                  setTimeout(() => setShowPaymentPage(true), 100);
+                  setBookingStep('payment');
                 }}
                 disabled={isLoading}
               >
@@ -450,10 +449,23 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
+    );
+  }
 
-        {/* Payment Page Dialog */}
-        <Dialog open={showPaymentPage} onOpenChange={setShowPaymentPage}>
-          <DialogContent className="max-w-2xl p-6 bg-white dark:bg-slate-900 border-none shadow-2xl overflow-y-auto max-h-[90vh]">
+  // Payment View
+  if (bookingStep === 'payment') {
+    return (
+      <div className="max-w-4xl mx-auto py-8">
+        <div className="mb-6 flex items-center gap-4">
+          <Button variant="ghost" onClick={() => setBookingStep('select')}>
+            <ChevronLeft className="h-4 w-4 mr-2" /> Back to Selection
+          </Button>
+          <h2 className="text-2xl font-serif font-bold text-[#1e3a5f]">Secure Payment</h2>
+        </div>
+        
+        <Card className="border-none shadow-xl overflow-hidden">
+          <CardContent className="p-8">
             <PaymentPage
               bookingDetails={{
                 roomName: selectedRoom?.name || '',
@@ -469,10 +481,10 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
                 balanceDue: Math.round(calculateTotal() * 1.15) - depositAmount,
               }}
               onPaymentComplete={handlePaymentComplete}
-              onCancel={() => setShowPaymentPage(false)}
+              onCancel={() => setBookingStep('select')}
             />
-          </DialogContent>
-        </Dialog>
+          </CardContent>
+        </Card>
       </div>
     );
   }
