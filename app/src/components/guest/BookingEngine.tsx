@@ -438,7 +438,10 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
 
               <Button
                 className="w-full bg-[#c9a227] hover:bg-[#b8941f] text-white"
-                onClick={() => setShowPaymentPage(true)}
+                onClick={() => {
+                  setShowBookingModal(false);
+                  setTimeout(() => setShowPaymentPage(true), 100);
+                }}
                 disabled={isLoading}
               >
                 <CreditCard className="mr-2 h-4 w-4" />
@@ -449,8 +452,10 @@ export function BookingEngine({ onBack }: BookingEngineProps) {
         </Dialog>
 
         {/* Payment Page Dialog */}
-        <Dialog open={showPaymentPage} onOpenChange={setShowPaymentPage}>
-          <DialogContent className="max-w-2xl bg-transparent border-none shadow-none p-0">
+        <Dialog open={showPaymentPage} onOpenChange={(open) => {
+          if (!open) setShowPaymentPage(false);
+        }}>
+          <DialogContent className="max-w-2xl p-0 border-none bg-transparent shadow-none overflow-visible">
             <PaymentPage
               bookingDetails={{
                 roomName: selectedRoom?.name || '',

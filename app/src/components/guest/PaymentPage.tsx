@@ -100,8 +100,8 @@ export function PaymentPage({ bookingDetails, onPaymentComplete, onCancel }: Pay
 
   if (step === 'disclaimer') {
     return (
-      <div className="max-w-2xl mx-auto py-12">
-        <Card>
+      <div className="w-full animate-in fade-in zoom-in-95 duration-300">
+        <Card className="border-none shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#1e3a5f]">
               <AlertCircle className="h-6 w-6" />
@@ -163,8 +163,8 @@ export function PaymentPage({ bookingDetails, onPaymentComplete, onCancel }: Pay
 
   if (step === 'confirmation') {
     return (
-      <div className="max-w-2xl mx-auto py-12">
-        <Card>
+      <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <Card className="border-none shadow-2xl overflow-hidden">
           <CardHeader className="text-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="h-10 w-10 text-green-600" />
