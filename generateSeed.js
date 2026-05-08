@@ -1,4 +1,7 @@
-import { db, rtdb } from '../lib/firebase';
+const fs = require('fs');
+
+const generateSeed = () => {
+  const fileContent = `import { db, rtdb } from '../lib/firebase';
 import { doc, setDoc, collection, addDoc } from 'firebase/firestore';
 import { ref, set } from 'firebase/database';
 import { seedTables } from './tableSeedData';
@@ -41,7 +44,7 @@ export const seedDatabase = async () => {
     for (const staff of staffList) {
       await setDoc(doc(db, 'users', staff.email), staff);
     }
-    console.log(`✅ Added ${staffList.length} staff accounts`);
+    console.log(\`✅ Added \${staffList.length} staff accounts\`);
 
     // ==========================================
     // 2. GUEST ACCOUNTS (20)
@@ -72,7 +75,7 @@ export const seedDatabase = async () => {
     for (const g of guests) {
       await setDoc(doc(db, 'users', g.email), g);
     }
-    console.log(`✅ Added ${guests.length} guest accounts`);
+    console.log(\`✅ Added \${guests.length} guest accounts\`);
 
     // ==========================================
     // 3. ROOMS (200 rooms programmatic)
@@ -89,15 +92,15 @@ export const seedDatabase = async () => {
     for (let floor = 1; floor <= 5; floor++) {
       const typeData = baseTypes[floor - 1];
       for (let r = 1; r <= 40; r++) {
-        const roomNum = `${typeData.prefix}${r.toString().padStart(2, '0')}`;
+        const roomNum = \`\${typeData.prefix}\${r.toString().padStart(2, '0')}\`;
         rooms.push({
           id: roomNum,
-          name: `${typeData.name} ${roomNum}`,
+          name: \`\${typeData.name} \${roomNum}\`,
           price: typeData.price,
           type: typeData.type,
           isAvailable: true,
           capacity: typeData.capacity,
-          description: `Spacious ${typeData.name} on floor ${floor}.`,
+          description: \`Spacious \${typeData.name} on floor \${floor}.\`,
           amenities: typeData.amenities,
           images: typeData.images
         });
@@ -107,14 +110,14 @@ export const seedDatabase = async () => {
     for (const room of rooms) {
       await setDoc(doc(db, 'rooms', room.id), room);
     }
-    console.log(`✅ Added ${rooms.length} rooms`);
+    console.log(\`✅ Added \${rooms.length} rooms\`);
 
     // ==========================================
     // 4. BOOKINGS (30 generated)
     // ==========================================
     const today = new Date();
-    const futureDate = (days: number) => new Date(today.getTime() + days * 86400000).toISOString().split('T')[0];
-    const pastDate = (days: number) => new Date(today.getTime() - days * 86400000).toISOString().split('T')[0];
+    const futureDate = (days) => new Date(today.getTime() + days * 86400000).toISOString().split('T')[0];
+    const pastDate = (days) => new Date(today.getTime() - days * 86400000).toISOString().split('T')[0];
 
     const bookings = [
       { id: 'BK-1001', guestId: 'robert_harrison', guestName: 'Robert Harrison', status: 'checked_in', roomNumber: '101', roomName: 'Oceanic Executive Suite 101', checkInDate: pastDate(2), checkOutDate: futureDate(2), totalAmount: 16800, numberOfGuests: 2, paymentStatus: 'deposit_paid', depositPaid: 2520, balanceDue: 14280 },
@@ -139,7 +142,7 @@ export const seedDatabase = async () => {
         await setDoc(roomRef, { isAvailable: false }, { merge: true });
       }
     }
-    console.log(`✅ Added ${bookings.length} bookings`);
+    console.log(\`✅ Added \${bookings.length} bookings\`);
 
     // ==========================================
     // 4.1 INCIDENTAL CHARGES FOR CHECKED IN
@@ -154,7 +157,7 @@ export const seedDatabase = async () => {
     for (const inc of incidentals) {
       await addDoc(collection(db, 'incidental_charges'), inc);
     }
-    console.log(`✅ Added ${incidentals.length} incidental charges`);
+    console.log(\`✅ Added \${incidentals.length} incidental charges\`);
 
     // ==========================================
     // 5. SERVICE REQUESTS
@@ -169,7 +172,7 @@ export const seedDatabase = async () => {
     for (const req of serviceRequests) {
       await setDoc(doc(db, 'service_requests', req.id), req);
     }
-    console.log(`✅ Added ${serviceRequests.length} service requests`);
+    console.log(\`✅ Added \${serviceRequests.length} service requests\`);
 
     // ==========================================
     // 6. RESTAURANT MENU (RTDB)
@@ -192,7 +195,7 @@ export const seedDatabase = async () => {
         { id: 'b1', name: 'Signature Cocktail', price: 120, description: 'Azure Horizon Special - gin, elderflower, prosecco, and edible flowers.', image: '/food/signature-cocktail.jpg' },
       ],
     });
-    console.log(`✅ Added restaurant menu`);
+    console.log(\`✅ Added restaurant menu\`);
 
     // ==========================================
     // 7. RESTAURANT TABLES
@@ -208,7 +211,7 @@ export const seedDatabase = async () => {
     for (const r of tableReservations) {
       await addDoc(collection(db, 'table_reservations'), r);
     }
-    console.log(`✅ Added ${tableReservations.length} table reservations`);
+    console.log(\`✅ Added \${tableReservations.length} table reservations\`);
 
     // ==========================================
     // 9. TOURS AND SPA
@@ -237,21 +240,21 @@ export const seedDatabase = async () => {
     for (const tb of tourBookings) {
       await setDoc(doc(db, 'tour_bookings', tb.id), tb);
     }
-    console.log(`✅ Added tours and spa bookings`);
+    console.log(\`✅ Added tours and spa bookings\`);
 
     // ==========================================
     // 10. REVIEWS
     // ==========================================
     const dummyReviews = [
       { guestId: 'guest_001', guestName: 'Thandi Mokoena', category: 'room', rating: 5, comments: 'The Ocean View Suite was absolutely breathtaking! Waking up to the sound of waves every morning made this the best holiday of my life.', createdAt: pastDate(2), helpful: 12 },
-      { guestId: 'guest_005', guestName: 'Priya Naidoo', category: 'restaurant', rating: 5, comments: 'Chef Sibusiso\'s seafood platter is out of this world! The fresh line fish with chakalaka butter sauce was a masterpiece.', createdAt: pastDate(1), helpful: 22 },
+      { guestId: 'guest_005', guestName: 'Priya Naidoo', category: 'restaurant', rating: 5, comments: 'Chef Sibusiso\\'s seafood platter is out of this world! The fresh line fish with chakalaka butter sauce was a masterpiece.', createdAt: pastDate(1), helpful: 22 },
       { guestId: 'guest_010', guestName: 'Zanele Mthembu', category: 'tour', rating: 5, comments: 'The whale watching tour was a once-in-a-lifetime experience! Our guide was incredibly knowledgeable and we spotted a mother and calf.', createdAt: pastDate(1), helpful: 25 },
       { guestId: 'guest_014', guestName: 'Lerato Maseko', category: 'spa', rating: 5, comments: 'The hot stone massage was pure bliss. Therapist Nomsa has magic hands! The relaxation room with herbal tea afterwards was the perfect way to unwind.', createdAt: pastDate(2), helpful: 20 },
     ];
     for (const review of dummyReviews) {
       await addDoc(collection(db, 'reviews'), review);
     }
-    console.log(`✅ Added ${dummyReviews.length} guest reviews`);
+    console.log(\`✅ Added \${dummyReviews.length} guest reviews\`);
 
     alert("✅ System Initialized Successfully with 200 rooms and fresh demo data!");
   } catch (err) {
@@ -259,3 +262,9 @@ export const seedDatabase = async () => {
     alert("Seeding failed. Check console for details.");
   }
 };
+`;
+
+  fs.writeFileSync('c:\\Users\\mphoj\\OneDrive\\Documents\\Fixed 2\\app\\src\\services\\seedData.ts', fileContent, 'utf-8');
+};
+
+generateSeed();

@@ -878,25 +878,44 @@ export const likeActivityPost = async (postId: string, guestId: string) => {
 
 export const fetchAllGuestCharges = async (guestId: string) => {
   try {
-    // 1. Room booking
+    // 1. Fetch Room bookings, but ONLY keep the most recent/active one
     const bookingsQ = query(collection(db, 'bookings'), where('guestId', '==', guestId));
     const bookingsSnap = await getDocs(bookingsQ);
-    const bookings = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const allBookings = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+    
+    // Sort bookings to find the active or most recent one
+    allBookings.sort((a, b) => new Date(b.checkInDate).getTime() - new Date(a.checkInDate).getTime());
+    const recentBooking = allBookings.length > 0 ? allBookings[0] : null;
+    const bookings = recentBooking ? [recentBooking] : [];
+
+    // Filter timestamp function
+    const isWithinBooking = (itemTimeStr: string | number | undefined) => {
+      if (!recentBooking || !itemTimeStr) return true; // fallback
+      const itemTime = new Date(itemTimeStr).getTime();
+      const checkIn = new Date(recentBooking.checkInDate).getTime() - (24 * 60 * 60 * 1000); // 1 day padding
+      return itemTime >= checkIn;
+    };
 
     // 2. Receipts (restaurant deliveries)
     const receiptsQ = query(collection(db, 'receipts'), where('guestId', '==', guestId));
     const receiptsSnap = await getDocs(receiptsQ);
-    const receipts = receiptsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const receipts = receiptsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(r => 
+      isWithinBooking(r.createdAt?.seconds ? r.createdAt.seconds * 1000 : r.createdAt)
+    );
 
     // 3. Spa bookings
     const spaQ = query(collection(db, 'spa_bookings'), where('guestId', '==', guestId));
     const spaSnap = await getDocs(spaQ);
-    const spaBookings = spaSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const spaBookings = spaSnap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(s => 
+      isWithinBooking(s.createdAt)
+    );
 
     // 4. Tour bookings
     const tourQ = query(collection(db, 'tour_bookings'), where('guestId', '==', guestId));
     const tourSnap = await getDocs(tourQ);
-    const tourBookings = tourSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const tourBookings = tourSnap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(t => 
+      isWithinBooking(t.createdAt)
+    );
 
     return { bookings, receipts, spaBookings, tourBookings };
   } catch (error) {

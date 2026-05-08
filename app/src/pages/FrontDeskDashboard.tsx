@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { 
-  listenForBookings, 
-  listenForRooms, 
+import {
+  listenForBookings,
+  listenForRooms,
   updateBookingStatus,
   db,
   getRoomTypeOccupancy,
@@ -23,18 +23,18 @@ import html2canvas from 'html2canvas';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import emailjs from '@emailjs/browser';
-import { 
-  Dialog, 
-  DialogContent, 
+import {
+  Dialog,
+  DialogContent,
   DialogDescription,
-  DialogHeader, 
+  DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { 
-  Search, 
-  LogIn, 
-  LogOut, 
-  CreditCard, 
+import {
+  Search,
+  LogIn,
+  LogOut,
+  CreditCard,
   Key,
   Loader2,
   BedDouble,
@@ -112,7 +112,7 @@ export function FrontDeskDashboard() {
   const [emailAddress, setEmailAddress] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [showEarlyCheckoutModal, setShowEarlyCheckoutModal] = useState(false);
-  
+
   // Alert Modal state
   const [alertModal, setAlertModal] = useState({
     open: false,
@@ -120,11 +120,11 @@ export function FrontDeskDashboard() {
     message: '',
     type: 'info' as 'success' | 'error' | 'info' | 'warning'
   });
-  
+
   // Edit booking state
   const [editCheckIn, setEditCheckIn] = useState('');
   const [editCheckOut, setEditCheckOut] = useState('');
-  
+
   // Payment state
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
@@ -146,7 +146,7 @@ export function FrontDeskDashboard() {
       }));
       setRooms(roomsWithStatus);
     });
-    
+
     return () => {
       unsubscribeBookings();
       unsubscribeRooms();
@@ -190,7 +190,7 @@ export function FrontDeskDashboard() {
     };
 
     computeRoomTypeOccupancy();
-    
+
     // Update occupancy every 5 minutes
     const interval = setInterval(computeRoomTypeOccupancy, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -200,19 +200,19 @@ export function FrontDeskDashboard() {
     return incidentalCharges.reduce((total, charge) => total + (charge.amount || 0), 0);
   };
 
-  const filteredBookings = bookings.filter(booking => 
+  const filteredBookings = bookings.filter(booking =>
     booking.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     booking.roomName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const todayCheckIns = bookings.filter(b => 
-    b.status === 'confirmed' && 
+  const todayCheckIns = bookings.filter(b =>
+    b.status === 'confirmed' &&
     new Date(b.checkInDate).toDateString() === new Date().toDateString()
   );
 
-  const todayCheckOuts = bookings.filter(b => 
-    b.status === 'checked_in' && 
+  const todayCheckOuts = bookings.filter(b =>
+    b.status === 'checked_in' &&
     new Date(b.checkOutDate).toDateString() === new Date().toDateString()
   );
 
@@ -253,10 +253,10 @@ export function FrontDeskDashboard() {
 
   const handleCheckIn = async () => {
     if (!selectedBooking || !selectedRoomId) return;
-    
+
     const checkInDateStr = selectedBooking.checkInDate.split('T')[0];
     const todayStr = new Date().toISOString().split('T')[0];
-    
+
     if (checkInDateStr > todayStr) {
       setAlertModal({
         open: true,
@@ -291,14 +291,14 @@ export function FrontDeskDashboard() {
     setIsProcessing(true);
     try {
       await updateBookingStatus(selectedBooking.id, 'checked_in');
-      
+
       const roomRef = doc(db, 'rooms', selectedRoomId);
       await updateDoc(roomRef, { isAvailable: false });
-      
+
       setShowCheckInModal(false);
       setSelectedBooking(null);
       setSelectedRoomId('');
-      
+
       setAlertModal({
         open: true,
         title: "Check-in Successful",
@@ -319,7 +319,7 @@ export function FrontDeskDashboard() {
   };
 
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder_key_please_replace';
-  
+
   const paymentAmount = (selectedBooking?.balanceDue !== undefined ? selectedBooking.balanceDue : ((selectedBooking?.totalAmount || 0) + getTotalIncidentalCharges())) * 100;
   const config = {
     reference: `checkout_${new Date().getTime()}`,
@@ -344,7 +344,7 @@ export function FrontDeskDashboard() {
 
   const handleCheckOut = () => {
     if (!selectedBooking) return;
-    
+
     if (selectedBooking.status !== 'checked_in') {
       setAlertModal({
         open: true,
@@ -354,7 +354,7 @@ export function FrontDeskDashboard() {
       });
       return;
     }
-    
+
     if (!keysReturned) {
       setAlertModal({
         open: true,
@@ -366,7 +366,7 @@ export function FrontDeskDashboard() {
     }
 
     const balance = selectedBooking.balanceDue !== undefined ? selectedBooking.balanceDue : selectedBooking.totalAmount + getTotalIncidentalCharges();
-    
+
     if (balance > 0) {
       setIsProcessingPayment(true);
       // Ensure Paystack iframe is clickable (Radix Dialog blocks pointer events by default)
@@ -382,7 +382,7 @@ export function FrontDeskDashboard() {
 
   const completeCheckoutProcess = async () => {
     if (!selectedBooking) return;
-    
+
     if (selectedBooking.status !== 'checked_in') {
       setAlertModal({
         open: true,
@@ -392,7 +392,7 @@ export function FrontDeskDashboard() {
       });
       return;
     }
-    
+
     if (!keysReturned) {
       setAlertModal({
         open: true,
@@ -402,31 +402,31 @@ export function FrontDeskDashboard() {
       });
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       await updateBookingStatus(selectedBooking.id, 'checked_out');
-      
+
       const roomRef = doc(db, 'rooms', selectedBooking.roomNumber);
       await updateDoc(roomRef, { isAvailable: true });
-      
+
       // Clear the balance and room charges to signify payment has been made via POS
       const bookingRef = doc(db, 'bookings', selectedBooking.id);
       await updateDoc(bookingRef, { balanceDue: 0 });
       await clearRoomCharges(selectedBooking.id);
-      
+
       setShowCheckOutModal(false);
-      
+
       // Store the booking data for email before clearing
       setEmailReceiptBooking(selectedBooking);
       setEmailAddress(selectedBooking.guestName.includes('@') ? selectedBooking.guestName : `${selectedBooking.guestName.replace(/\s/g, '').toLowerCase()}@example.com`);
       setShowEmailReceiptModal(true);
-      
+
       // Clear the selected booking after opening email modal
       setSelectedBooking(null);
       setKeysReturned(false);
       setPaymentCollected(false);
-      
+
       setAlertModal({
         open: true,
         title: "Check-out Successful",
@@ -454,7 +454,7 @@ export function FrontDeskDashboard() {
       const bookingRef = doc(db, 'bookings', selectedBooking.id);
       const paidTimestamp = new Date().toISOString();
       await updateDoc(bookingRef, { balanceDue: 0, paymentStatus: 'paid', lastPaidAt: paidTimestamp });
-      
+
       setAlertModal({
         open: true,
         title: "Bill Settled",
@@ -475,26 +475,26 @@ export function FrontDeskDashboard() {
     console.log("=== EMAIL BUTTON CLICKED ===");
     console.log("Email address:", emailAddress);
     console.log("Email receipt booking:", emailReceiptBooking);
-    
+
     if (!emailAddress) {
       alert("Please enter an email address.");
       return;
     }
-    
+
     if (!emailReceiptBooking) {
       alert("No booking data available for receipt. Please try checking out again.");
       return;
     }
-    
+
     setIsProcessing(true);
-    
+
     try {
       console.log("Starting email send process...");
-      
+
       const roomCharges = emailReceiptBooking.totalAmount;
       const tax = Math.round(roomCharges * 0.15);
       const nights = calculateNights(emailReceiptBooking.checkInDate, emailReceiptBooking.checkOutDate);
-      
+
       const templateParams = {
         to_email: emailAddress,
         guest_name: emailReceiptBooking.guestName,
@@ -509,22 +509,22 @@ export function FrontDeskDashboard() {
         incidental_charges: getTotalIncidentalCharges().toFixed(2),
         grand_total: (roomCharges + getTotalIncidentalCharges()).toFixed(2),
       };
-      
+
       console.log("Template params:", templateParams);
-      
+
       const response = await emailjs.send(
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         templateParams,
         EMAILJS_PUBLIC_KEY
       );
-      
+
       console.log("EmailJS response:", response);
-      
+
       if (response.status === 200) {
         setEmailSent(true);
         alert(`✅ Receipt sent successfully to ${emailAddress}!`);
-        
+
         setTimeout(() => {
           setShowEmailReceiptModal(false);
           setEmailSent(false);
@@ -544,24 +544,24 @@ export function FrontDeskDashboard() {
 
   const handleEarlyCheckout = async () => {
     if (!selectedBooking) return;
-    
+
     if (!keysReturned) {
       alert("Please confirm room keys have been returned.");
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       const checkoutDate = new Date(selectedBooking.checkOutDate);
       const today = new Date();
       const remainingDays = Math.ceil((checkoutDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       const refundAmount = (selectedBooking.totalAmount / 2) * (remainingDays / 1);
-      
+
       await updateBookingStatus(selectedBooking.id, 'checked_out');
-      
+
       const roomRef = doc(db, 'rooms', selectedBooking.roomNumber);
       await updateDoc(roomRef, { isAvailable: true });
-      
+
       setShowEarlyCheckoutModal(false);
       alert(`Early checkout processed. Refund amount: R${refundAmount.toFixed(2)}`);
       setSelectedBooking(null);
@@ -580,17 +580,17 @@ export function FrontDeskDashboard() {
     try {
       const oldRoomRef = doc(db, 'rooms', selectedBooking.roomNumber);
       await updateDoc(oldRoomRef, { isAvailable: true });
-      
+
       const newRoomRef = doc(db, 'rooms', selectedRoomId);
       await updateDoc(newRoomRef, { isAvailable: false });
-      
+
       const bookingRef = doc(db, 'bookings', selectedBooking.id);
-      await updateDoc(bookingRef, { 
-        roomId: selectedRoomId, 
+      await updateDoc(bookingRef, {
+        roomId: selectedRoomId,
         roomNumber: selectedRoomId,
         roomName: rooms.find(r => r.id === selectedRoomId)?.name || selectedRoomId
       });
-      
+
       alert(`Guest moved to room ${selectedRoomId}`);
       setShowRoomSwapModal(false);
       setSelectedRoomId('');
@@ -604,7 +604,7 @@ export function FrontDeskDashboard() {
     setIsProcessing(true);
     try {
       const result = await extendStayAndCharge(selectedBooking.id, extendDays);
-      
+
       if (result.success) {
         setAlertModal({
           open: true,
@@ -636,22 +636,22 @@ export function FrontDeskDashboard() {
       alert("Please enter both check-in and check-out dates.");
       return;
     }
-    
+
     const newCheckIn = new Date(editCheckIn);
     const newCheckOut = new Date(editCheckOut);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     if (newCheckIn < today) {
       alert("Check-in date cannot be in the past.");
       return;
     }
-    
+
     if (newCheckOut <= newCheckIn) {
       alert("Check-out date must be after check-in date.");
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       const bookingRef = doc(db, 'bookings', selectedBooking.id);
@@ -674,7 +674,7 @@ export function FrontDeskDashboard() {
 
   const handleCancelBooking = async () => {
     if (!selectedBooking) return;
-    
+
     if (selectedBooking.status === 'checked_in') {
       alert("Cannot cancel an active check-in. Please check out first.");
       return;
@@ -687,7 +687,7 @@ export function FrontDeskDashboard() {
       alert("This booking is already cancelled.");
       return;
     }
-    
+
     if (confirm(`Are you sure you want to cancel the booking for ${selectedBooking.guestName}? This action cannot be undone.`)) {
       setIsProcessing(true);
       try {
@@ -709,7 +709,7 @@ export function FrontDeskDashboard() {
 
   const handleDownloadInvoice = async () => {
     if (!selectedBooking) return;
-    
+
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
@@ -717,7 +717,7 @@ export function FrontDeskDashboard() {
     tempDiv.style.width = '800px';
     tempDiv.style.backgroundColor = 'white';
     tempDiv.style.padding = '40px';
-    
+
     const invoiceHtml = `
       <div style="font-family: 'Georgia', 'Times New Roman', serif;">
         <div style="text-align: center; border-bottom: 2px solid #1e3a5f; padding-bottom: 20px; margin-bottom: 30px;">
@@ -772,10 +772,10 @@ export function FrontDeskDashboard() {
         </div>
       </div>
     `;
-    
+
     tempDiv.innerHTML = invoiceHtml;
     document.body.appendChild(tempDiv);
-    
+
     try {
       const canvas = await html2canvas(tempDiv, {
         scale: 2,
@@ -783,17 +783,17 @@ export function FrontDeskDashboard() {
         logging: false,
         useCORS: true
       });
-      
+
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         unit: 'mm',
         format: 'a4',
         orientation: 'portrait'
       });
-      
+
       const imgWidth = 210;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
+
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       pdf.save(`Invoice_${selectedBooking.guestName.replace(/\s/g, '_')}_${selectedBooking.id}.pdf`);
     } catch (error) {
@@ -808,7 +808,7 @@ export function FrontDeskDashboard() {
     setSelectedBooking(booking);
     setIsLoadingBilling(true);
     setShowBillingModal(true);
-    
+
     setTimeout(() => {
       setGuestBilling({
         roomCharges: booking.totalAmount,
@@ -832,11 +832,11 @@ export function FrontDeskDashboard() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -862,7 +862,7 @@ export function FrontDeskDashboard() {
             <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg"><LogIn className="text-blue-600 dark:text-blue-400" /></div>
           </div>
         </CardContent></Card>
-        
+
         <Card className="dark:bg-slate-900 dark:border-slate-800"><CardContent className="p-6">
           <div className="flex justify-between items-center">
             <div><p className="text-sm text-gray-500 dark:text-gray-400">Today's Departures</p><p className="text-3xl font-bold dark:text-white">{todayCheckOuts.length}</p></div>
@@ -898,7 +898,7 @@ export function FrontDeskDashboard() {
                   if (occ >= 50) return 'bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700';
                   return 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-700';
                 };
-                
+
                 const getOccupancyTextColor = (occ: number) => {
                   if (occ >= 90) return 'text-red-700 dark:text-red-300';
                   if (occ >= 70) return 'text-yellow-700 dark:text-yellow-300';
@@ -942,11 +942,11 @@ export function FrontDeskDashboard() {
       <div className="mb-6 flex justify-between items-center">
         <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input 
-            className="pl-10 dark:bg-slate-900 dark:border-slate-800 dark:text-white" 
-            placeholder="Search guest or booking ID..." 
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)} 
+          <Input
+            className="pl-10 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+            placeholder="Search guest or booking ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <Button variant="outline" className="dark:bg-slate-900 dark:border-slate-800 dark:text-gray-300" onClick={() => setShowRoomStatusModal(true)}>
@@ -963,8 +963,8 @@ export function FrontDeskDashboard() {
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
-          <BookingsTable 
-            bookings={filteredBookings} 
+          <BookingsTable
+            bookings={filteredBookings}
             onCheckIn={(b) => { setSelectedBooking(b); setShowCheckInModal(true); }}
             onCheckOut={(b) => { setSelectedBooking(b); setShowCheckOutModal(true); }}
             onViewBilling={handleViewBilling}
@@ -973,8 +973,8 @@ export function FrontDeskDashboard() {
             onExtendStay={(b) => { setSelectedBooking(b); setShowExtendStayModal(true); }}
             onEarlyCheckout={(b) => { setSelectedBooking(b); setShowEarlyCheckoutModal(true); }}
             onDownloadInvoice={(b) => { setSelectedBooking(b); handleDownloadInvoice(); }}
-            onEditBooking={(b) => { 
-              setSelectedBooking(b); 
+            onEditBooking={(b) => {
+              setSelectedBooking(b);
               setEditCheckIn(b.checkInDate);
               setEditCheckOut(b.checkOutDate);
               setShowEditBookingModal(true);
@@ -985,8 +985,8 @@ export function FrontDeskDashboard() {
         </TabsContent>
 
         <TabsContent value="arrivals" className="mt-4">
-          <BookingsTable 
-            bookings={todayCheckIns} 
+          <BookingsTable
+            bookings={todayCheckIns}
             onCheckIn={(b) => { setSelectedBooking(b); setShowCheckInModal(true); }}
             onCheckOut={(b) => { setSelectedBooking(b); setShowCheckOutModal(true); }}
             onViewBilling={handleViewBilling}
@@ -995,8 +995,8 @@ export function FrontDeskDashboard() {
             onExtendStay={(b) => { setSelectedBooking(b); setShowExtendStayModal(true); }}
             onEarlyCheckout={(b) => { setSelectedBooking(b); setShowEarlyCheckoutModal(true); }}
             onDownloadInvoice={(b) => { setSelectedBooking(b); handleDownloadInvoice(); }}
-            onEditBooking={(b) => { 
-              setSelectedBooking(b); 
+            onEditBooking={(b) => {
+              setSelectedBooking(b);
               setEditCheckIn(b.checkInDate);
               setEditCheckOut(b.checkOutDate);
               setShowEditBookingModal(true);
@@ -1007,8 +1007,8 @@ export function FrontDeskDashboard() {
         </TabsContent>
 
         <TabsContent value="inhouse" className="mt-4">
-          <BookingsTable 
-            bookings={bookings.filter(b => b.status === 'checked_in')} 
+          <BookingsTable
+            bookings={bookings.filter(b => b.status === 'checked_in')}
             onCheckIn={(b) => { setSelectedBooking(b); setShowCheckInModal(true); }}
             onCheckOut={(b) => { setSelectedBooking(b); setShowCheckOutModal(true); }}
             onViewBilling={handleViewBilling}
@@ -1017,8 +1017,8 @@ export function FrontDeskDashboard() {
             onExtendStay={(b) => { setSelectedBooking(b); setShowExtendStayModal(true); }}
             onEarlyCheckout={(b) => { setSelectedBooking(b); setShowEarlyCheckoutModal(true); }}
             onDownloadInvoice={(b) => { setSelectedBooking(b); handleDownloadInvoice(); }}
-            onEditBooking={(b) => { 
-              setSelectedBooking(b); 
+            onEditBooking={(b) => {
+              setSelectedBooking(b);
               setEditCheckIn(b.checkInDate);
               setEditCheckOut(b.checkOutDate);
               setShowEditBookingModal(true);
@@ -1107,9 +1107,9 @@ export function FrontDeskDashboard() {
               )}
             </div>
 
-            <Button 
-              className="w-full bg-orange-600 hover:bg-orange-700" 
-              onClick={handleCheckOut} 
+            <Button
+              className="w-full bg-orange-600 hover:bg-orange-700"
+              onClick={handleCheckOut}
               disabled={isProcessing || isProcessingPayment || !keysReturned || ((selectedBooking?.balanceDue === undefined || selectedBooking.balanceDue > 0) && !paymentCollected)}
             >
               {(isProcessing || isProcessingPayment) ? <Loader2 className="animate-spin mr-2" /> : <CreditCard className="mr-2 h-4 w-4" />}
@@ -1143,15 +1143,15 @@ export function FrontDeskDashboard() {
               <Label>Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input 
-                  className="pl-10 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" 
-                  placeholder="guest@example.com" 
+                <Input
+                  className="pl-10 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                  placeholder="guest@example.com"
                   value={emailAddress}
                   onChange={(e) => setEmailAddress(e.target.value)}
                 />
               </div>
             </div>
-            
+
             {emailSent ? (
               <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
                 <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
@@ -1163,12 +1163,12 @@ export function FrontDeskDashboard() {
                 <Button variant="outline" className="flex-1" onClick={() => setShowEmailReceiptModal(false)}>
                   Skip
                 </Button>
-                <Button 
-                  className="flex-1 bg-blue-600 hover:bg-blue-700" 
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
                   onClick={() => {
                     console.log("Send button clicked directly");
                     handleSendEmailReceipt();
-                  }} 
+                  }}
                   disabled={isProcessing}
                 >
                   {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-4 w-4" />}
@@ -1310,8 +1310,8 @@ export function FrontDeskDashboard() {
             </div>
             <div className="space-y-2">
               <Label>New Check-in Date</Label>
-              <Input 
-                type="date" 
+              <Input
+                type="date"
                 value={editCheckIn}
                 onChange={(e) => setEditCheckIn(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
@@ -1319,16 +1319,16 @@ export function FrontDeskDashboard() {
             </div>
             <div className="space-y-2">
               <Label>New Check-out Date</Label>
-              <Input 
-                type="date" 
+              <Input
+                type="date"
                 value={editCheckOut}
                 onChange={(e) => setEditCheckOut(e.target.value)}
                 min={editCheckIn || new Date().toISOString().split('T')[0]}
               />
             </div>
             <div className="flex gap-3 pt-4">
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 className="flex-1"
                 onClick={handleCancelBooking}
                 disabled={isProcessing || selectedBooking?.status === 'checked_in' || selectedBooking?.status === 'checked_out'}
@@ -1336,7 +1336,7 @@ export function FrontDeskDashboard() {
                 <XCircle className="mr-2 h-4 w-4" />
                 Cancel Booking
               </Button>
-              <Button 
+              <Button
                 className="flex-1 bg-[#1e3a5f] hover:bg-[#2c5282]"
                 onClick={handleUpdateBooking}
                 disabled={isProcessing}
@@ -1372,7 +1372,7 @@ export function FrontDeskDashboard() {
               </p>
             </div>
           )}
-          
+
           {isLoadingBilling ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-[#1e3a5f]" />
@@ -1393,9 +1393,9 @@ export function FrontDeskDashboard() {
                     Incidental Charges
                   </div>
                   {selectedBooking?.status !== 'checked_out' && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="h-8 border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227]/10"
                       onClick={async () => {
                         const desc = prompt("Enter charge description:");
@@ -1473,8 +1473,8 @@ export function FrontDeskDashboard() {
               {selectedBooking?.status !== 'checked_out' && (
                 <div className="flex gap-3">
                   {(selectedBooking?.balanceDue === undefined || selectedBooking.balanceDue > 0) && (
-                    <Button 
-                      className="flex-1 bg-amber-600 hover:bg-amber-700" 
+                    <Button
+                      className="flex-1 bg-amber-600 hover:bg-amber-700"
                       onClick={handleSettleBill}
                       disabled={isProcessing}
                     >
@@ -1482,8 +1482,8 @@ export function FrontDeskDashboard() {
                       Settle Bill via POS
                     </Button>
                   )}
-                  <Button 
-                    className="flex-1 bg-green-600 hover:bg-green-700" 
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700"
                     onClick={() => {
                       setShowBillingModal(false);
                       setShowCheckOutModal(true);
@@ -1496,8 +1496,8 @@ export function FrontDeskDashboard() {
               )}
 
               {selectedBooking?.status === 'checked_out' && (
-                <Button 
-                  className="w-full bg-gray-400 cursor-not-allowed" 
+                <Button
+                  className="w-full bg-gray-400 cursor-not-allowed"
                   disabled
                 >
                   <Receipt className="mr-2 h-4 w-4" />
@@ -1516,7 +1516,7 @@ export function FrontDeskDashboard() {
             <DialogTitle>Smart Guest Profile</DialogTitle>
             <DialogDescription>Live analytics and guest information</DialogDescription>
           </DialogHeader>
-          
+
           {selectedBooking && (
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
@@ -1615,18 +1615,18 @@ interface BookingsTableProps {
   getStatusBadge: (s: Booking['status']) => React.ReactNode;
 }
 
-function BookingsTable({ 
-  bookings, 
-  onCheckIn, 
-  onCheckOut, 
-  onViewBilling, 
+function BookingsTable({
+  bookings,
+  onCheckIn,
+  onCheckOut,
+  onViewBilling,
   onViewGuest,
   onRoomSwap,
   onExtendStay,
   onEarlyCheckout,
   onDownloadInvoice,
   onEditBooking,
-  getStatusBadge 
+  getStatusBadge
 }: BookingsTableProps) {
   return (
     <Card><CardContent className="p-0 overflow-x-auto">

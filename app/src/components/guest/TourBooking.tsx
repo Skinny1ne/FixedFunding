@@ -70,6 +70,7 @@ export function TourBooking({ onBack }: TourBookingProps) {
   const [confirmedBooking, setConfirmedBooking] = useState<TourBooking | null>(null);
   const [alert, setAlert] = useState({ open: false, title: '', message: '', type: 'info' as 'success' | 'error' | 'info' | 'warning' });
   const [tourReviews, setTourReviews] = useState<TourReview[]>([]);
+  const [activeBooking, setActiveBooking] = useState<any>(null);
 
   useEffect(() => {
     const unsub = listenForTours((data) => {
@@ -87,8 +88,21 @@ export function TourBooking({ onBack }: TourBookingProps) {
     };
     fetchReviews();
 
+    const fetchActiveBooking = async () => {
+      const u = user as any;
+      if (u?.id || u?.uid) {
+        const uid = u.id || u.uid;
+        try {
+          const bq = fbQuery(collection(db, 'bookings'), where('guestId', '==', uid), where('status', 'in', ['confirmed', 'checked_in']));
+          const snap = await getDocs(bq);
+          if (!snap.empty) setActiveBooking({ id: snap.docs[0].id, ...snap.docs[0].data() });
+        } catch(e) { console.error(e); }
+      }
+    };
+    fetchActiveBooking();
+
     return unsub;
-  }, []);
+  }, [user]);
 
   const tourAvgRating = tourReviews.length > 0
     ? (tourReviews.reduce((s, r) => s + r.rating, 0) / tourReviews.length).toFixed(1)
@@ -200,7 +214,7 @@ export function TourBooking({ onBack }: TourBookingProps) {
     initializePayment({ onSuccess: handlePaystackSuccess, onClose: handlePaystackClose });
   };
 
-  const handleChargeToRoom = () => {
+  const handleChargeToRoom = async () => {
     if (totalTickets === 0) {
       setAlert({ open: true, title: 'No Tickets', message: 'Please select at least 1 ticket.', type: 'warning' });
       return;
@@ -209,9 +223,69 @@ export function TourBooking({ onBack }: TourBookingProps) {
       setAlert({ open: true, title: 'Indemnity Required', message: 'Please agree to the terms and indemnity waiver before confirming.', type: 'warning' });
       return;
     }
+    if (!activeBooking) {
+      setAlert({ open: true, title: 'Error', message: 'No active room booking found to charge to.', type: 'error' });
+      return;
+    }
     
-    // Bypass payment gateway and confirm immediately
-    handlePaystackSuccess();
+    setIsSubmitting(true);
+    try {
+      const guestId = (user as any)?.id || (user as any)?.uid || '';
+      const totalAmount = getTotal();
+      
+      // Save tour booking officially
+      const ticketItems: TourTicket[] = (['adult', 'child', 'pensioner'] as const)
+        .filter(type => tickets[type] > 0)
+        .map(type => ({
+          type,
+          quantity: tickets[type],
+          priceEach: selectedTour!.pricing[type],
+        }));
+
+      const bookingRef = `TB-${Date.now().toString(36).toUpperCase()}`;
+      const bookingPayload = {
+        tourId: selectedTour!.id,
+        tourName: selectedTour!.name,
+        guestId,
+        guestName: user?.name || 'Guest',
+        date: selectedSlot!.date,
+        time: selectedSlot!.time,
+        tickets: ticketItems,
+        totalAmount,
+        status: 'confirmed' as const,
+        bookingReference: bookingRef,
+        paymentMethod: 'room_charge',
+      };
+
+      const result = await createTourBooking(bookingPayload);
+      
+      if (result.success) {
+        // CHARGE TO ROOM BILL
+        const { addRoomCharge } = await import('@/services/firebase-services');
+        await addRoomCharge(
+          activeBooking.id, 
+          guestId, 
+          `Tour: ${selectedTour!.name} (${selectedSlot!.date})`, 
+          totalAmount
+        );
+        
+        // Award loyalty points
+        const pts = Math.floor(totalAmount / 10);
+        if (pts > 0) {
+          awardLoyaltyPoints(guestId, user?.email || '', pts, `Tour Booking: ${selectedTour!.name}`);
+        }
+        
+        setConfirmedBooking({ ...bookingPayload, id: result.bookingId!, createdAt: new Date().toISOString() });
+        setStep('success');
+      } else {
+        setAlert({ open: true, title: 'Booking Failed', message: result.error || 'Failed to book tour.', type: 'error' });
+      }
+    } catch (e) {
+      console.error(e);
+      setAlert({ open: true, title: 'Error', message: 'An unexpected error occurred.', type: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   // ----------------------------
 

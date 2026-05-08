@@ -95,8 +95,18 @@ export function BillingView({ onBack }: BillingViewProps) {
   }, [currentUserId]);
 
 
+  // Calculate Unpaid Incidentals for online payment
+  const unpaidIncidentals = receipts.filter(r => {
+    const lastPaidAt = activeBooking?.lastPaidAt;
+    const chargeTime = (r.createdAt?.seconds * 1000) || new Date(r.date || 0).getTime() || 0;
+    return !lastPaidAt || chargeTime > new Date(lastPaidAt).getTime();
+  });
+  
+  const unpaidIncidentalsTotal = unpaidIncidentals.reduce((sum, item) => sum + (item.price || item.amount || item.totalAmount || 0), 0);
+
   const totalBill = activeBooking ? (activeBooking.balanceDue || 0) : 0;
-  const amountToPay = totalBill > 0 ? totalBill : 0;
+  // Guest online payment should ONLY be for unpaid activities/incidentals
+  const amountToPay = unpaidIncidentalsTotal > 0 ? unpaidIncidentalsTotal : 0;
 
   // Paystack config
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder_key_please_replace';
@@ -104,7 +114,7 @@ export function BillingView({ onBack }: BillingViewProps) {
   const config = {
     reference: `bill_${new Date().getTime()}`,
     email: currentUser?.email || 'guest@example.com',
-    amount: amountToPay * 100, // ZAR to cents
+    amount: Math.round(amountToPay * 100), // ZAR to cents
     publicKey: PAYSTACK_PUBLIC_KEY,
     currency: 'ZAR',
   };
@@ -231,13 +241,15 @@ export function BillingView({ onBack }: BillingViewProps) {
         <CardContent className="p-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-              <p className="text-white/60 text-xs uppercase tracking-[0.2em] mb-1">Current Room Balance</p>
-              <h2 className="text-5xl font-bold font-mono">R {totalBill.toLocaleString()}</h2>
-              <div className="flex items-center gap-2 mt-4">
-                <Badge className="bg-[#c9a227] hover:bg-[#c9a227] text-white border-none">
-                  Add-to-Bill Enabled
-                </Badge>
-                <span className="text-white/60 text-sm italic">Verification active</span>
+              <div className="mb-4">
+                <p className="text-white/60 text-xs uppercase tracking-[0.2em] mb-1">Total Room Balance</p>
+                <h2 className="text-3xl font-bold font-mono opacity-80">R {totalBill.toLocaleString()}</h2>
+                <span className="text-white/60 text-xs italic">Includes room rate & activities (payable at front desk checkout)</span>
+              </div>
+              
+              <div className="pt-4 border-t border-white/20">
+                <p className="text-[#c9a227] text-xs uppercase tracking-[0.2em] mb-1 font-semibold">Unpaid Activities & Incidentals</p>
+                <h2 className="text-5xl font-bold font-mono text-[#c9a227]">R {unpaidIncidentalsTotal.toLocaleString()}</h2>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -256,7 +268,7 @@ export function BillingView({ onBack }: BillingViewProps) {
                   ) : (
                     <Lock className="h-5 w-5 mr-2" />
                   )}
-                  Pay Full Balance Now
+                  Pay Activities (R {amountToPay.toLocaleString()})
                 </Button>
               )}
               
