@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, Trophy, Star, Gift, Gem, TrendingUp, Clock, BedDouble, Sparkles } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 type AuthUserBridge = AppUser & { uid?: string };
 
@@ -24,6 +25,7 @@ export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
   const { user } = useAuth();
   const currentUser = user as AuthUserBridge;
   const [logEntries, setLogEntries] = useState<LoyaltyLogEntry[]>([]);
+  const [voucher, setVoucher] = useState<{title: string, pts: number, code: string} | null>(null);
 
   const points = currentUser?.loyaltyPoints || 0;
   const tierName = currentUser?.loyaltyTier || 'bronze';
@@ -65,7 +67,11 @@ export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
         createdAt: new Date().toISOString()
       });
       
-      alert(`Successfully redeemed: ${reward.title}! You can show this to the staff to claim your reward.`);
+      setVoucher({
+        title: reward.title,
+        pts: reward.pts,
+        code: `AZURE-${Math.random().toString(36).substr(2, 8).toUpperCase()}`
+      });
     } catch (e) {
       console.error(e);
       alert('Failed to redeem points. Try again.');
@@ -226,6 +232,31 @@ export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!voucher} onOpenChange={(open) => !open && setVoucher(null)}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-serif text-[#c9a227] text-center">Reward Voucher</DialogTitle>
+            <DialogDescription className="text-center">Present this digital voucher to our staff</DialogDescription>
+          </DialogHeader>
+          {voucher && (
+            <div className="py-6 space-y-4">
+              <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2">
+                <Gift className="h-10 w-10 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">{voucher.title}</h3>
+              <p className="text-sm text-gray-500">Redeemed for {voucher.pts} points</p>
+              
+              <div className="bg-gray-100 p-4 rounded-lg mt-6 border-2 border-dashed border-gray-300">
+                <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Voucher Code</p>
+                <p className="text-3xl font-mono font-bold tracking-widest text-[#1e3a5f]">{voucher.code}</p>
+              </div>
+              <p className="text-xs text-gray-400 mt-4">Valid for 30 days from redemption. Non-transferable.</p>
+            </div>
+          )}
+          <Button onClick={() => setVoucher(null)} className="w-full bg-[#1e3a5f] hover:bg-[#163058]">Close</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

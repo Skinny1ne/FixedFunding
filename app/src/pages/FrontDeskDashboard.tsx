@@ -320,7 +320,7 @@ export function FrontDeskDashboard() {
 
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder_key_please_replace';
   
-  const paymentAmount = ((selectedBooking?.totalAmount || 0) + getTotalIncidentalCharges()) * 100;
+  const paymentAmount = (selectedBooking?.balanceDue !== undefined ? selectedBooking.balanceDue : ((selectedBooking?.totalAmount || 0) + getTotalIncidentalCharges())) * 100;
   const config = {
     reference: `checkout_${new Date().getTime()}`,
     email: selectedBooking?.guestName ? (selectedBooking.guestName.includes('@') ? selectedBooking.guestName : `${selectedBooking.guestName.replace(/\s/g, '').toLowerCase()}@example.com`) : 'guest@example.com',
@@ -329,18 +329,15 @@ export function FrontDeskDashboard() {
     currency: 'ZAR',
   };
 
-  // @ts-ignore -- Paystack integration kept for future card payment feature
-  const _initializePayment = usePaystackPayment(config);
+  const initializePayment = usePaystackPayment(config);
 
-  // @ts-ignore
-  const _handlePaystackSuccess = async () => {
+  const handlePaystackSuccess = async () => {
     document.body.style.pointerEvents = 'auto';
     setIsProcessingPayment(false);
     await completeCheckoutProcess();
   };
 
-  // @ts-ignore
-  const _handlePaystackClose = () => {
+  const handlePaystackClose = () => {
     document.body.style.pointerEvents = 'auto';
     setIsProcessingPayment(false);
   };
@@ -369,23 +366,17 @@ export function FrontDeskDashboard() {
     }
 
     const balance = selectedBooking.balanceDue !== undefined ? selectedBooking.balanceDue : selectedBooking.totalAmount + getTotalIncidentalCharges();
-    if (balance > 0 && !paymentCollected) {
-      setAlertModal({
-        open: true,
-        title: "Payment Required",
-        message: "Please confirm that you have collected the outstanding balance via POS terminal.",
-        type: "warning"
-      });
+    
+    if (balance > 0) {
+      setIsProcessingPayment(true);
+      document.body.style.pointerEvents = 'none';
+      initializePayment({ onSuccess: handlePaystackSuccess, onClose: handlePaystackClose });
       return;
     }
 
+    // Process checkout directly if balance is 0
     setIsProcessingPayment(true);
-    
-    // Simulate processing payment via physical POS terminal
-    setTimeout(async () => {
-      setIsProcessingPayment(false);
-      await completeCheckoutProcess();
-    }, 2000);
+    completeCheckoutProcess();
   };
 
   const completeCheckoutProcess = async () => {
@@ -879,14 +870,14 @@ export function FrontDeskDashboard() {
 
         <Card className="dark:bg-slate-900 dark:border-slate-800"><CardContent className="p-6">
           <div className="flex justify-between items-center">
-            <div><p className="text-sm text-gray-500 dark:text-gray-400">Total Rooms</p><p className="text-3xl font-bold dark:text-white">{rooms.length}</p></div>
+            <div><p className="text-sm text-gray-500 dark:text-gray-400">Total Rooms</p><p className="text-3xl font-bold dark:text-white">200</p></div>
             <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg"><BedDouble className="text-green-600 dark:text-green-400" /></div>
           </div>
         </CardContent></Card>
 
         <Card className="dark:bg-slate-900 dark:border-slate-800"><CardContent className="p-6">
           <div className="flex justify-between items-center">
-            <div><p className="text-sm text-gray-500 dark:text-gray-400">Available</p><p className="text-3xl font-bold dark:text-white">{rooms.filter(r => r.isAvailable).length}</p></div>
+            <div><p className="text-sm text-gray-500 dark:text-gray-400">Available</p><p className="text-3xl font-bold dark:text-white">{200 - bookings.filter(b => b.status === 'checked_in').length}</p></div>
             <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg"><Key className="text-yellow-600 dark:text-yellow-400" /></div>
           </div>
         </CardContent></Card>
@@ -897,7 +888,7 @@ export function FrontDeskDashboard() {
         <Card className="mb-8 dark:bg-slate-900 dark:border-slate-800">
           <CardContent className="p-6">
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Room Type Status</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex flex-wrap gap-4">
               {Object.entries(roomTypeOccupancy).map(([roomType, occupancy]) => {
                 const getOccupancyColor = (occ: number) => {
                   if (occ >= 90) return 'bg-red-100 dark:bg-red-900/20 border-red-300 dark:border-red-700';
@@ -921,7 +912,7 @@ export function FrontDeskDashboard() {
                 };
 
                 return (
-                  <div key={roomType} className={`p-3 border rounded-lg ${getOccupancyColor(occupancy)}`}>
+                  <div key={roomType} className={`flex-1 min-w-[200px] p-3 border rounded-lg ${getOccupancyColor(occupancy)}`}>
                     <div className="flex justify-between items-start mb-2">
                       <p className="text-xs font-semibold capitalize text-gray-700 dark:text-gray-300">{roomType.replace(/_/g, ' ')}</p>
                       <span className={`text-sm font-bold ${getOccupancyTextColor(occupancy)}`}>{occupancy}%</span>
@@ -1277,9 +1268,9 @@ export function FrontDeskDashboard() {
             <DialogTitle>Room Status Overview</DialogTitle>
             <DialogDescription>Current status of all rooms in the resort</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+          <div className="flex flex-wrap gap-3 max-h-96 overflow-y-auto">
             {rooms.map((room) => (
-              <div key={room.id} className={`p-3 rounded-lg border ${getRoomStatusColor(room.roomStatus)}`}>
+              <div key={room.id} className={`flex-1 min-w-[200px] p-3 rounded-lg border ${getRoomStatusColor(room.roomStatus)}`}>
                 <div className="flex items-center justify-between">
                   <span className="font-bold">Room {room.id}</span>
                   {getRoomStatusIcon(room.roomStatus)}

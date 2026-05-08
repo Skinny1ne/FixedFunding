@@ -188,7 +188,7 @@ export function AdminDashboard() {
   };
 
   const totalRevenue = bookings.reduce((sum: number, b: any) => sum + (b.totalAmount || 0), 0);
-  const totalRooms = stats.availableRooms + stats.activeGuests || 1;
+  const totalRooms = 200;
   const occupancyRate = (bookings.filter((b: any) => b.status === 'checked_in').length / totalRooms) * 100;
 
   const ForecastCard = () => {
