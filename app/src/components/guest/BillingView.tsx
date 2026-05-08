@@ -120,11 +120,15 @@ export function BillingView({ onBack }: BillingViewProps) {
     if (activeBooking) {
       try {
         const { doc, updateDoc } = await import('firebase/firestore');
+        const paidTimestamp = new Date().toISOString();
         const bookingRef = doc(db, 'bookings', activeBooking.id);
         await updateDoc(bookingRef, {
           balanceDue: 0,
-          paymentStatus: 'paid'
+          paymentStatus: 'paid',
+          lastPaidAt: paidTimestamp
         });
+        // Update local state so UI reflects immediately
+        setActiveBooking({ ...activeBooking, balanceDue: 0, paymentStatus: 'paid', lastPaidAt: paidTimestamp });
       } catch (err) {
         console.error("Error updating payment status:", err);
       }
@@ -298,25 +302,53 @@ export function BillingView({ onBack }: BillingViewProps) {
         ) : (
           <div className="grid gap-8">
             {receipts.map((receipt) => {
+              // Determine paid status based on lastPaidAt timestamp
+              const lastPaidAt = activeBooking?.lastPaidAt;
+              const chargeTime = receipt.createdAt?.seconds
+                ? receipt.createdAt.seconds * 1000
+                : new Date(receipt.date || receipt.createdAt || 0).getTime();
+              const isPaid = lastPaidAt && chargeTime <= new Date(lastPaidAt).getTime();
+
               if (receipt.type === 'incidental') {
                 return (
-                  <Card key={receipt.id} className="border-none shadow-md">
+                  <Card key={receipt.id} className={`border-none shadow-md ${isPaid ? 'opacity-75' : ''}`}>
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start">
                         <div>
-                          <Badge className="bg-purple-100 text-purple-800 border-none mb-2">Room Charge</Badge>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className="bg-purple-100 text-purple-800 border-none">Room Charge</Badge>
+                            {isPaid ? (
+                              <Badge className="bg-green-100 text-green-700 border-none">✓ Paid</Badge>
+                            ) : (
+                              <Badge className="bg-orange-100 text-orange-700 border-none">Unpaid</Badge>
+                            )}
+                          </div>
                           <h4 className="font-bold text-[#1e3a5f] text-lg">{receipt.description}</h4>
                           <p className="text-sm text-gray-500 mt-1">{new Date(receipt.date).toLocaleString()}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-xl text-[#1e3a5f]">R {receipt.amount}</p>
+                          <p className={`font-bold text-xl ${isPaid ? 'text-gray-400 line-through' : 'text-[#1e3a5f]'}`}>R {receipt.amount}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 );
               }
-              return <DigitalReceipt key={receipt.id} data={receipt} />;
+              return (
+                <div key={receipt.id} className="relative">
+                  {isPaid && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <Badge className="bg-green-100 text-green-700 border-none">✓ Paid</Badge>
+                    </div>
+                  )}
+                  {!isPaid && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <Badge className="bg-orange-100 text-orange-700 border-none">Unpaid</Badge>
+                    </div>
+                  )}
+                  <DigitalReceipt key={receipt.id} data={receipt} />
+                </div>
+              );
             })}
           </div>
         )}

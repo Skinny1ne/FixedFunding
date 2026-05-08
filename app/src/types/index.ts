@@ -53,6 +53,7 @@ export interface Booking {
   depositPaid?: number;
   balanceDue?: number; // Amount remaining to be paid
   paymentStatus: 'pending' | 'deposit_paid' | 'paid' | 'refunded' ;
+  lastPaidAt?: string; // Timestamp of last bill payment for tracking paid vs unpaid charges
   createdAt: string;
 }
 

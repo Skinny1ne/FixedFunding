@@ -451,7 +451,8 @@ export function FrontDeskDashboard() {
     setIsProcessing(true);
     try {
       const bookingRef = doc(db, 'bookings', selectedBooking.id);
-      await updateDoc(bookingRef, { balanceDue: 0, paymentStatus: 'paid' });
+      const paidTimestamp = new Date().toISOString();
+      await updateDoc(bookingRef, { balanceDue: 0, paymentStatus: 'paid', lastPaidAt: paidTimestamp });
       
       setAlertModal({
         open: true,
@@ -460,7 +461,7 @@ export function FrontDeskDashboard() {
         type: "success"
       });
       // Optionally refresh the modal data
-      setSelectedBooking({ ...selectedBooking, balanceDue: 0, paymentStatus: 'paid' });
+      setSelectedBooking({ ...selectedBooking, balanceDue: 0, paymentStatus: 'paid', lastPaidAt: paidTimestamp });
     } catch (error) {
       console.error(error);
       setAlertModal({ open: true, title: "Error", message: "Could not settle the bill.", type: "error" });
