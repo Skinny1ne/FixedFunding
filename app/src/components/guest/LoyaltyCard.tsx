@@ -22,7 +22,7 @@ const TIERS = [
 ];
 
 export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const currentUser = user as AuthUserBridge;
   const [logEntries, setLogEntries] = useState<LoyaltyLogEntry[]>([]);
   const [voucher, setVoucher] = useState<{title: string, pts: number, code: string} | null>(null);
@@ -74,6 +74,9 @@ export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
         reason: `Redeemed: ${reward.title}`,
         createdAt: new Date().toISOString()
       });
+      
+      // Update local auth context so points reflect immediately
+      login({ ...currentUser, loyaltyPoints: newPoints } as any);
       
       setVoucher({
         title: reward.title,
