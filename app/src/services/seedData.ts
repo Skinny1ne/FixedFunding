@@ -49,21 +49,21 @@ export const seedDatabase = async () => {
     // 2. GUEST ACCOUNTS (15)
     // ==========================================
     const guests = [
-      { id: 'robert_harrison', uid: 'robert_harrison', name: 'Robert Harrison', email: 'rharrison@gmail.com', role: 'guest', status: 'resident', roomNumber: '101' },
-      { id: 'zoe_katsaros', uid: 'zoe_katsaros', name: 'Zoe Katsaros', email: 'zoe.k@icloud.com', role: 'guest', status: 'resident', roomNumber: '204' },
-      { id: 'michael_chen', uid: 'michael_chen', name: 'Michael Chen', email: 'mchen88@outlook.com', role: 'guest', status: 'visitor' },
-      { id: 'amara_okafor', uid: 'amara_okafor', name: 'Amara Okafor', email: 'amara.pro@me.com', role: 'guest', status: 'resident', roomNumber: '302' },
-      { id: 'jacobus_van_der_merwe', uid: 'jacobus_van_der_merwe', name: 'Jacobus van der Merwe', email: 'j.vdm@mweb.co.za', role: 'guest', status: 'resident', roomNumber: '110' },
-      { id: 'linda_thompson', uid: 'linda_thompson', name: 'Linda Thompson', email: 'linda.t@yahoo.com', role: 'guest', status: 'visitor' },
-      { id: 'sanjay_gupta', uid: 'sanjay_gupta', name: 'Sanjay Gupta', email: 'sgupta@health.org', role: 'guest', status: 'resident', roomNumber: '401' },
-      { id: 'isabella_rossi', uid: 'isabella_rossi', name: 'Isabella Rossi', email: 'bella.rossi@protonmail.com', role: 'guest', status: 'resident', roomNumber: '105' },
-      { id: 'thomas_shelby', uid: 'thomas_shelby', name: 'Thomas Shelby', email: 'tshelby@peaky.biz', role: 'guest', status: 'visitor' },
-      { id: 'emily_blunt', uid: 'emily_blunt', name: 'Emily Blunt', email: 'emily.act@icloud.com', role: 'guest', status: 'resident', roomNumber: '202' },
-      { id: 'david_wilson', uid: 'david_wilson', name: 'David Wilson', email: 'david.w@hotmail.com', role: 'guest', status: 'visitor' },
-      { id: 'sarah_johnson', uid: 'sarah_johnson', name: 'Sarah Johnson', email: 'sarah.j@yahoo.com', role: 'guest', status: 'resident', roomNumber: '305' },
-      { id: 'james_brown', uid: 'james_brown', name: 'James Brown', email: 'james.b@gmail.com', role: 'guest', status: 'visitor' },
-      { id: 'maria_garcia', uid: 'maria_garcia', name: 'Maria Garcia', email: 'maria.g@outlook.com', role: 'guest', status: 'resident', roomNumber: '208' },
-      { id: 'ahmed_khan', uid: 'ahmed_khan', name: 'Ahmed Khan', email: 'ahmed.k@icloud.com', role: 'guest', status: 'visitor' },
+      { id: 'robert_harrison', uid: 'robert_harrison', name: 'Robert Harrison', email: 'rharrison@gmail.com', role: 'guest', status: 'resident', roomNumber: '101', loyaltyPoints: 1200, loyaltyTier: 'silver' },
+      { id: 'zoe_katsaros', uid: 'zoe_katsaros', name: 'Zoe Katsaros', email: 'zoe.k@icloud.com', role: 'guest', status: 'resident', roomNumber: '204', loyaltyPoints: 850, loyaltyTier: 'silver' },
+      { id: 'michael_chen', uid: 'michael_chen', name: 'Michael Chen', email: 'mchen88@outlook.com', role: 'guest', status: 'visitor', loyaltyPoints: 300, loyaltyTier: 'bronze' },
+      { id: 'amara_okafor', uid: 'amara_okafor', name: 'Amara Okafor', email: 'amara.pro@me.com', role: 'guest', status: 'resident', roomNumber: '302', loyaltyPoints: 2200, loyaltyTier: 'gold' },
+      { id: 'jacobus_van_der_merwe', uid: 'jacobus_van_der_merwe', name: 'Jacobus van der Merwe', email: 'j.vdm@mweb.co.za', role: 'guest', status: 'resident', roomNumber: '110', loyaltyPoints: 450, loyaltyTier: 'bronze' },
+      { id: 'linda_thompson', uid: 'linda_thompson', name: 'Linda Thompson', email: 'linda.t@yahoo.com', role: 'guest', status: 'visitor', loyaltyPoints: 150, loyaltyTier: 'bronze' },
+      { id: 'sanjay_gupta', uid: 'sanjay_gupta', name: 'Sanjay Gupta', email: 'sgupta@health.org', role: 'guest', status: 'resident', roomNumber: '401', loyaltyPoints: 5500, loyaltyTier: 'platinum' },
+      { id: 'isabella_rossi', uid: 'isabella_rossi', name: 'Isabella Rossi', email: 'bella.rossi@protonmail.com', role: 'guest', status: 'resident', roomNumber: '105', loyaltyPoints: 600, loyaltyTier: 'silver' },
+      { id: 'thomas_shelby', uid: 'thomas_shelby', name: 'Thomas Shelby', email: 'tshelby@peaky.biz', role: 'guest', status: 'visitor', loyaltyPoints: 1800, loyaltyTier: 'gold' },
+      { id: 'emily_blunt', uid: 'emily_blunt', name: 'Emily Blunt', email: 'emily.act@icloud.com', role: 'guest', status: 'resident', roomNumber: '202', loyaltyPoints: 3200, loyaltyTier: 'gold' },
+      { id: 'david_wilson', uid: 'david_wilson', name: 'David Wilson', email: 'david.w@hotmail.com', role: 'guest', status: 'visitor', loyaltyPoints: 75, loyaltyTier: 'bronze' },
+      { id: 'sarah_johnson', uid: 'sarah_johnson', name: 'Sarah Johnson', email: 'sarah.j@yahoo.com', role: 'guest', status: 'resident', roomNumber: '305', loyaltyPoints: 950, loyaltyTier: 'silver' },
+      { id: 'james_brown', uid: 'james_brown', name: 'James Brown', email: 'james.b@gmail.com', role: 'guest', status: 'visitor', loyaltyPoints: 200, loyaltyTier: 'bronze' },
+      { id: 'maria_garcia', uid: 'maria_garcia', name: 'Maria Garcia', email: 'maria.g@outlook.com', role: 'guest', status: 'resident', roomNumber: '208', loyaltyPoints: 1500, loyaltyTier: 'gold' },
+      { id: 'ahmed_khan', uid: 'ahmed_khan', name: 'Ahmed Khan', email: 'ahmed.k@icloud.com', role: 'guest', status: 'visitor', loyaltyPoints: 100, loyaltyTier: 'bronze' },
     ];
 
     for (const g of guests) {

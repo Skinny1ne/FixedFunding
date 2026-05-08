@@ -51,12 +51,20 @@ export function LoyaltyCard({ onBack }: LoyaltyCardProps) {
     try {
       const { doc, updateDoc, collection, addDoc } = await import('firebase/firestore');
       const { db } = await import('@/services/firebase-services');
+      
+      // Users are stored by email as document ID
+      const userDocId = (currentUser as any).email?.toLowerCase() || currentUser.id || currentUser.uid || '';
       const guestId = currentUser.id || currentUser.uid || '';
+      
+      if (!userDocId) {
+        alert('Unable to identify your account. Please try logging in again.');
+        return;
+      }
       
       const newPoints = points - reward.pts;
       
-      // Update user points
-      const userRef = doc(db, 'users', guestId);
+      // Update user points using email as document key
+      const userRef = doc(db, 'users', userDocId);
       await updateDoc(userRef, { loyaltyPoints: newPoints });
       
       // Add log entry (negative points)

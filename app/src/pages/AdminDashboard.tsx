@@ -74,12 +74,9 @@ export function AdminDashboard() {
       setStats(prev => ({ ...prev, totalBookings: snapshot.size, totalRevenue: revenue, activeGuests: active }));
     });
 
-    const unsubRooms = onSnapshot(collection(db, 'rooms'), (snapshot) => {
-      let available = 0;
-      snapshot.forEach(doc => {
-        if (doc.data().isAvailable) available++;
-      });
-      setStats(prev => ({ ...prev, availableRooms: available }));
+    const unsubRooms = onSnapshot(collection(db, 'rooms'), () => {
+      // Available = 200 total rooms - currently checked-in guests
+      setStats(prev => ({ ...prev, availableRooms: 200 - prev.activeGuests }));
     });
 
     return () => { unsubBookings(); unsubRooms(); };

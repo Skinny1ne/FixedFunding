@@ -193,7 +193,7 @@ export const getRoomTypeById = async (roomId: string): Promise<string | null> =>
 
 // Helper: Count total physical rooms of a given type
 export const countPhysicalRoomsOfType = async (_roomType: string): Promise<number> => {
-  return 50; // Hardcoded to 50 for the 200 total room base constraint
+  return 40; // 200 total rooms / 5 room types = 40 per type
 };
 
 // Helper: Get occupancy percentage for a room type
