@@ -369,7 +369,8 @@ export function FrontDeskDashboard() {
     
     if (balance > 0) {
       setIsProcessingPayment(true);
-      document.body.style.pointerEvents = 'none';
+      // Ensure Paystack iframe is clickable (Radix Dialog blocks pointer events by default)
+      document.body.style.pointerEvents = 'auto';
       initializePayment({ onSuccess: handlePaystackSuccess, onClose: handlePaystackClose });
       return;
     }
@@ -1427,18 +1428,29 @@ export function FrontDeskDashboard() {
                       No incidental charges added yet.
                     </div>
                   ) : (
-                    incidentalCharges.map((charge) => (
-                      <div key={charge.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-slate-800 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-800 dark:text-slate-100">{charge.description}</p>
-                          <p className="text-xs text-gray-400 dark:text-slate-500">{new Date(charge.date).toLocaleDateString()}</p>
+                    incidentalCharges.map((charge) => {
+                      const lastPaidAt = selectedBooking?.lastPaidAt;
+                      const chargeTime = new Date(charge.date).getTime();
+                      const isPaid = lastPaidAt && chargeTime <= new Date(lastPaidAt).getTime();
+                      return (
+                        <div key={charge.id} className={`flex justify-between items-center p-3 bg-gray-50 dark:bg-slate-800 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${isPaid ? 'opacity-70' : ''}`}>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-800 dark:text-slate-100">{charge.description}</p>
+                              {isPaid ? (
+                                <Badge className="bg-green-100 text-green-700 border-none text-[10px] px-1.5 py-0">Paid</Badge>
+                              ) : (
+                                <Badge className="bg-orange-100 text-orange-700 border-none text-[10px] px-1.5 py-0">Unpaid</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-400 dark:text-slate-500">{new Date(charge.date).toLocaleDateString()}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`font-semibold ${isPaid ? 'text-gray-400 line-through' : 'text-[#1e3a5f] dark:text-blue-400'}`}>R {charge.amount.toFixed(2)}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-[#1e3a5f] dark:text-blue-400">R {charge.amount.toFixed(2)}</span>
-                          {/* Removed local trash button to enforce database integrity. Deletions should be handled by an admin voiding the charge. */}
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
